@@ -5,11 +5,17 @@
 import { useState } from 'react';
 import { Form, Input, Button, Card, message } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { login } from '../services/core';
 
 function Login() {
   const [ loading, setLoading ] = useState(false);
   const [ form ] = Form.useForm();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // 获取登录后要重定向的路径，默认为 /dashboard
+  const from = (location.state as any)?.from || '/dashboard';
 
   const handleSubmit = async(values: { username: string; password: string }) => {
     setLoading(true);
@@ -24,7 +30,7 @@ function Login() {
           };
           localStorage.setItem('user', JSON.stringify(result.data));
           localStorage.setItem('currentUser', JSON.stringify(userData));
-          window.location.href = '/dashboard';
+          navigate(from, { replace: true });
       } else {
         message.error(result.msg);
       }
