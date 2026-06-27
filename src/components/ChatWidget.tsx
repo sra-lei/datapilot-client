@@ -1,0 +1,230 @@
+/**
+ * 客服对话组件
+ */
+
+import {
+  CloseOutlined,
+  FullscreenOutlined,
+  MessageOutlined,
+  MinusOutlined,
+} from "@ant-design/icons";
+import { Button, Input, Space } from "antd";
+import { useEffect, useRef, useState } from "react";
+import type { ChatMessage } from "../types";
+
+function ChatWidget() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen && !isMinimized) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isOpen, isMinimized]);
+
+  const handleSend = () => {
+    if (!inputValue.trim()) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now(),
+      sender: "user",
+      content: inputValue.trim(),
+      timestamp: new Date().toLocaleTimeString("zh-CN"),
+    };
+
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+
+    setTimeout(() => {
+      const agentMessage: ChatMessage = {
+        id: Date.now() + 1,
+        sender: "agent",
+        content: "您好，我是智能客服。收到您的消息：" + inputValue.trim(),
+        timestamp: new Date().toLocaleTimeString("zh-CN"),
+      };
+      setMessages((prev) => [...prev, agentMessage]);
+    }, 1000);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  if (!isOpen) {
+    return (
+      <Button
+        type="primary"
+        shape="circle"
+        size="large"
+        icon={<MessageOutlined />}
+        onClick={() => setIsOpen(true)}
+        style={{
+          position: "fixed",
+          right: 24,
+          bottom: 24,
+          zIndex: 1000,
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        right: 24,
+        bottom: 24,
+        width: 380,
+        height: isMinimized ? 48 : 500,
+        background: "#fff",
+        borderRadius: 8,
+        boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
+        zIndex: 1000,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          background: "#1890ff",
+          color: "#fff",
+          padding: "12px 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: "pointer",
+        }}
+        onClick={() => setIsMinimized(!isMinimized)}
+      >
+        <Space>
+          <MessageOutlined />
+          <span style={{ fontWeight: "bold" }}>在线客服</span>
+        </Space>
+        <Space>
+          <Button
+            type="text"
+            icon={isMinimized ? <FullscreenOutlined /> : <MinusOutlined />}
+            style={{ color: "#fff", padding: 4 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMinimized(!isMinimized);
+            }}
+          />
+          <Button
+            type="text"
+            icon={<CloseOutlined />}
+            style={{ color: "#fff", padding: 4 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOpen(false);
+              setIsMinimized(false);
+            }}
+          />
+        </Space>
+      </div>
+
+      {!isMinimized && (
+        <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+          <div
+            style={{
+              flex: 1,
+              padding: 16,
+              overflowY: "auto",
+              background: "#f5f5f5",
+            }}
+          >
+            {messages.length === 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  color: "#999",
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <MessageOutlined
+                    style={{ fontSize: 48, marginBottom: 8, opacity: 0.5 }}
+                  />
+                  <p>您好，有什么可以帮您？</p>
+                </div>
+              </div>
+            ) : (
+              <Space direction="vertical" style={{ width: "100%" }}>
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    style={{
+                      display: "flex",
+                      justifyContent:
+                        msg.sender === "user" ? "flex-end" : "flex-start",
+                    }}
+                  >
+                    <div
+                      style={{
+                        maxWidth: "75%",
+                        padding: "8px 12px",
+                        borderRadius: 8,
+                        background: msg.sender === "user" ? "#1890ff" : "#fff",
+                        color: msg.sender === "user" ? "#fff" : "#333",
+                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+                      }}
+                    >
+                      <p style={{ margin: 0, wordBreak: "break-word" }}>
+                        {msg.content}
+                      </p>
+                      <p
+                        style={{
+                          margin: "4px 0 0",
+                          fontSize: 10,
+                          opacity: 0.6,
+                          textAlign: "right",
+                        }}
+                      >
+                        {msg.timestamp}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </Space>
+            )}
+          </div>
+
+          <div
+            style={{
+              padding: 12,
+              borderTop: "1px solid #f0f0f0",
+              background: "#fff",
+            }}
+          >
+            <Input
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onPressEnter={handleKeyPress}
+              placeholder="输入消息..."
+              style={{ marginBottom: 8 }}
+              allowClear
+            />
+            <Space style={{ justifyContent: "flex-end", width: "100%" }}>
+              <Button onClick={handleSend} type="primary">
+                发送
+              </Button>
+            </Space>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ChatWidget;
