@@ -221,7 +221,7 @@ function SystemSettings() {
                         {cacheData.size}
                       </div>
                       <div style={{ fontSize: 12, color: "#888" }}>
-                        问题总数
+                        缓存数量
                       </div>
                     </div>
                   </div>

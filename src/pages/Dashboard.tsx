@@ -263,7 +263,7 @@ function Dashboard() {
                     >
                       {cacheStats.size}
                     </div>
-                    <div style={{ fontSize: 10, color: "#888" }}>总数</div>
+                    <div style={{ fontSize: 10, color: "#888" }}>缓存数量</div>
                   </div>
                 </div>
               </div>
