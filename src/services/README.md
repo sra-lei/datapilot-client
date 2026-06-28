@@ -9,6 +9,7 @@ Services 模块统一管理所有与后端服务器的通信，按业务系统�
 ```
 services/
 ├── index.ts              # 统一导出入口
+├── types.ts              # 公共类型定义
 ├── core/                 # Core Service（Node.js Server）
 │   ├── index.ts          # Core 模块导出
 │   ├── constants.ts      # Core API 路径常量
@@ -20,9 +21,9 @@ services/
     ├── index.ts          # CharterMate 模块导出
     ├── constants.ts      # CharterMate API 路径常量
     ├── types.ts          # CharterMate 类型定义
-    ├── system.ts         # 系统服务（健康检查等）
-    ├── database.ts       # 数据库服务
-    └── cache.ts          # 缓存服务
+    ├── system.ts         # 系统服务（健康检查）
+    ├── cache.ts          # 缓存服务
+    └── chat.ts           # 对话服务
 ```
 
 ## 使用示例
@@ -35,11 +36,11 @@ import { login, getAllRoles, getTables, checkHealth } from './services/core';
 import { CORE_API } from './services/core';
 
 // CharterMate Service
-import { checkHealth, getCacheStats, getTables } from './services/chartermate';
+import { checkHealth as checkChartermateHealth, getCacheStats } from './services/chartermate';
 import { CHARTERMATE_API } from './services/chartermate';
 
 // 统一导入（同时导出两个模块）
-import { login, checkHealth } from './services';
+import { login, checkChartermateHealth } from './services';
 ```
 
 ### 调用服务
@@ -52,7 +53,7 @@ const result = await login({ username: 'admin', password: '123456' });
 const roles = await getAllRoles();
 
 // CharterMate Service - 检查健康状态
-const health = await checkHealth();
+const health = await checkChartermateHealth();
 
 // CharterMate Service - 获取缓存统计
 const cacheStats = await getCacheStats();
@@ -70,16 +71,20 @@ CORE_API.SYSTEM.HEALTH        // /core/health
 // CharterMate Service API
 CHARTERMATE_API.SYSTEM.HEALTH // /api/v1/health
 CHARTERMATE_API.CACHE.STATS   // /api/v1/cache/stats
-CHARTERMATE_API.DATABASE.TABLES // /core/database/tables
 ```
 
 ## 类型定义
+
+### 公共类型
+
+| 类型 | 说明 |
+|------|------|
+| `ApiResponse<T>` | 统一响应格式 |
 
 ### Core Service 类型
 
 | 类型 | 说明 |
 |------|------|
-| `ApiResponse<T>` | 统一响应格式 |
 | `UserInfo` | 用户信息 |
 | `Permission` | 权限信息 |
 | `Role` | 角色信息 |
@@ -90,10 +95,8 @@ CHARTERMATE_API.DATABASE.TABLES // /core/database/tables
 
 | 类型 | 说明 |
 |------|------|
-| `ApiResponse<T>` | 统一响应格式 |
 | `ServiceHealth` | 服务健康状态 |
 | `CacheStats` | 缓存统计信息 |
-| `BusinessUser` | 业务用户信息 |
 
 ## 最佳实践
 
