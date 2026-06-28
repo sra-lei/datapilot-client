@@ -2,17 +2,17 @@
  * 仪表盘页面
  */
 
-import { useState, useEffect } from 'react';
-import { Card, Statistic, Row, Col, Button, Badge, Spin } from 'antd';
+import { CloudServerOutlined, ReloadOutlined } from "@ant-design/icons";
+import { Badge, Button, Card, Col, Row, Spin, Statistic } from "antd";
+import { useEffect, useState } from "react";
 import {
-  CloudServerOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
-import { checkHealth } from '../services/core';
-import { checkHealth as checkChartermateHealth, getCacheStats } from '../services/chartermate';
+  checkHealth as checkChartermateHealth,
+  getCacheStats,
+} from "../services/chartermate";
+import { checkHealth } from "../services/core";
 
 interface ServiceStatus {
-  status: 'ok' | 'error' | 'checking';
+  status: "ok" | "error" | "checking";
   lastCheck: Date | null;
 }
 
@@ -25,27 +25,27 @@ interface CacheStats {
 
 function Dashboard() {
   const [coreStatus, setCoreStatus] = useState<ServiceStatus>({
-    status: 'checking',
+    status: "checking",
     lastCheck: null,
   });
   const [chartermateStatus, setChartermateStatus] = useState<ServiceStatus>({
-    status: 'checking',
+    status: "checking",
     lastCheck: null,
   });
   const [cacheStats, setCacheStats] = useState<CacheStats | null>(null);
 
   // 检查 Core Service 状态
   const checkCoreHealthStatus = async () => {
-    setCoreStatus(prev => ({ ...prev, status: 'checking' }));
+    setCoreStatus((prev) => ({ ...prev, status: "checking" }));
     try {
       const data = await checkHealth();
       setCoreStatus({
-        status: data.data?.status === 'ok' ? 'ok' : 'error',
+        status: data.data?.status === "ok" ? "ok" : "error",
         lastCheck: new Date(),
       });
     } catch {
       setCoreStatus({
-        status: 'error',
+        status: "error",
         lastCheck: new Date(),
       });
     }
@@ -53,23 +53,23 @@ function Dashboard() {
 
   // 检查 CharterMate Service 状态
   const checkChartermateHealthStatus = async () => {
-    setChartermateStatus(prev => ({ ...prev, status: 'checking' }));
+    setChartermateStatus((prev) => ({ ...prev, status: "checking" }));
     try {
       const result = await checkChartermateHealth();
-      if (result.status === 200 && result.data) {
+      if (result.success && result.data) {
         setChartermateStatus({
-          status: result.data.status === 'ok' ? 'ok' : 'error',
+          status: result.data.status === "ok" ? "ok" : "error",
           lastCheck: new Date(),
         });
       } else {
         setChartermateStatus({
-          status: 'error',
+          status: "error",
           lastCheck: new Date(),
         });
       }
     } catch {
       setChartermateStatus({
-        status: 'error',
+        status: "error",
         lastCheck: new Date(),
       });
     }
@@ -77,7 +77,7 @@ function Dashboard() {
     // 同时获取缓存统计
     try {
       const statsResult = await getCacheStats();
-      if (statsResult.status === 200 && statsResult.data) {
+      if (statsResult.success && statsResult.data) {
         setCacheStats(statsResult.data);
       }
     } catch {
@@ -93,13 +93,13 @@ function Dashboard() {
 
   // 渲染服务状态
   const renderStatus = (status: ServiceStatus) => {
-    if (status.status === 'checking') {
+    if (status.status === "checking") {
       return <Spin size="small" />;
     }
     return (
       <Badge
-        status={status.status === 'ok' ? 'success' : 'error'}
-        text={status.status === 'ok' ? '运行正常' : '服务异常'}
+        status={status.status === "ok" ? "success" : "error"}
+        text={status.status === "ok" ? "运行正常" : "服务异常"}
       />
     );
   };
@@ -137,12 +137,12 @@ function Dashboard() {
               valueRender={() => renderStatus(coreStatus)}
               prefix={<CloudServerOutlined />}
             />
-            <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
+            <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
               {coreStatus.lastCheck
-                ? `最后检查: ${coreStatus.lastCheck.toLocaleTimeString('zh-CN')}`
-                : '未检查'}
+                ? `最后检查: ${coreStatus.lastCheck.toLocaleTimeString("zh-CN")}`
+                : "未检查"}
             </div>
-            <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
+            <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
               状态监控服务
             </div>
             <Button
@@ -162,14 +162,110 @@ function Dashboard() {
               valueRender={() => renderStatus(chartermateStatus)}
               prefix={<CloudServerOutlined />}
             />
-            <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
+            <div style={{ marginTop: 8, fontSize: 12, color: "#888" }}>
               {chartermateStatus.lastCheck
-                ? `最后检查: ${chartermateStatus.lastCheck.toLocaleTimeString('zh-CN')}`
-                : '未检查'}
+                ? `最后检查: ${chartermateStatus.lastCheck.toLocaleTimeString("zh-CN")}`
+                : "未检查"}
             </div>
             {cacheStats && (
-              <div style={{ marginTop: 8, fontSize: 12, color: '#888' }}>
-                缓存命中率: {cacheStats.hit_rate} ({cacheStats.hits}/{cacheStats.hits + cacheStats.misses})
+              <div
+                style={{
+                  marginTop: 8,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                }}
+              >
+                <div style={{ position: "relative", width: 80, height: 80 }}>
+                  <svg width="80" height="80" viewBox="0 0 80 80">
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="30"
+                      fill="none"
+                      stroke="#f0f0f0"
+                      strokeWidth="6"
+                    />
+                    <circle
+                      cx="40"
+                      cy="40"
+                      r="30"
+                      fill="none"
+                      stroke={
+                        parseFloat(cacheStats.hit_rate) >= 80
+                          ? "#52c41a"
+                          : parseFloat(cacheStats.hit_rate) >= 50
+                            ? "#faad14"
+                            : "#ff4d4f"
+                      }
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      transform="rotate(-90 40 40)"
+                      style={{
+                        strokeDasharray: `${(parseFloat(cacheStats.hit_rate) / 100) * 2 * Math.PI * 30} ${2 * Math.PI * 30}`,
+                        transition: "stroke-dasharray 0.5s ease",
+                      }}
+                    />
+                  </svg>
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "50%",
+                      left: "50%",
+                      transform: "translate(-50%, -50%)",
+                      textAlign: "center",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: "#1890ff",
+                      }}
+                    >
+                      {cacheStats.hit_rate}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#888" }}>命中率</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 8, display: "flex", gap: 16 }}>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "bold",
+                        color: "#52c41a",
+                      }}
+                    >
+                      {cacheStats.hits}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#888" }}>命中</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "bold",
+                        color: "#ff4d4f",
+                      }}
+                    >
+                      {cacheStats.misses}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#888" }}>未命中</div>
+                  </div>
+                  <div style={{ textAlign: "center" }}>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        fontWeight: "bold",
+                        color: "#1890ff",
+                      }}
+                    >
+                      {cacheStats.size}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#888" }}>总数</div>
+                  </div>
+                </div>
               </div>
             )}
             <Button

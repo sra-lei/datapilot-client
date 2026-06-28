@@ -4,12 +4,12 @@
  * 开发环境使用 Vite 代理，生产环境使用环境变量配置的 URL
  */
 
-import { ServerType } from '../config';
-import type { ApiResponse } from '../services/types';
+import { ServerType } from "../config";
+import type { ApiResponse } from "../services/types";
 
 // 请求配置接口
 export interface RequestConfig {
-  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "DELETE";
   headers?: Record<string, string>;
   body?: unknown;
   timeout?: number;
@@ -17,9 +17,9 @@ export interface RequestConfig {
 
 // 默认请求配置
 const defaultConfig: RequestConfig = {
-  method: 'GET',
+  method: "GET",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
   timeout: 10000,
 };
@@ -34,13 +34,15 @@ const getRequestUrl = (serverType: ServerType, path: string): string => {
   if (import.meta.env.DEV) {
     return path; // 直接返回相对路径，如 '/core/user/login' 或 '/api/v1/health'
   }
-  
+
   // 生产环境使用完整 URL
-  const coreUrl = import.meta.env.VITE_SERVER_CORE_URL || 'http://localhost:3002';
-  const chartermateUrl = import.meta.env.VITE_SERVER_CHARTERMATE_URL || 'http://localhost:8000';
-  
-  return serverType === ServerType.CHARTERMATE 
-    ? `${chartermateUrl}${path}` 
+  const coreUrl =
+    import.meta.env.VITE_SERVER_CORE_URL || "http://localhost:3002";
+  const chartermateUrl =
+    import.meta.env.VITE_SERVER_CHARTERMATE_URL || "http://localhost:8000";
+
+  return serverType === ServerType.CHARTERMATE
+    ? `${chartermateUrl}${path}`
     : `${coreUrl}${path}`;
 };
 
@@ -54,7 +56,7 @@ const getRequestUrl = (serverType: ServerType, path: string): string => {
 export async function request<T = unknown>(
   serverType: ServerType,
   path: string,
-  config: RequestConfig = {}
+  config: RequestConfig = {},
 ): Promise<ApiResponse<T>> {
   const mergedConfig: RequestConfig = { ...defaultConfig, ...config };
   const url = getRequestUrl(serverType, path);
@@ -75,14 +77,22 @@ export async function request<T = unknown>(
     clearTimeout(timeoutId);
 
     // 解析响应
-    const result = await response.json() as ApiResponse<T>;
+    const result = (await response.json()) as ApiResponse<T>;
+
+    // 将 code/status 转换为 success 标识（兼容两种格式）
+    // Core 服务：code === 200 表示成功
+    // CharterMate 服务：status === 200 表示成功
+    result.success = result.code === 200 || result.status === 200;
 
     return result;
   } catch (error) {
     console.error(`请求失败 ${url}:`, error);
     return {
+      code: 500,
+      message: error instanceof Error ? error.message : '请求失败',
       status: 500,
       msg: error instanceof Error ? error.message : '请求失败',
+      success: false,
     };
   }
 }
@@ -92,7 +102,7 @@ export async function request<T = unknown>(
  */
 export const coreRequest = async <T = unknown>(
   path: string,
-  config: RequestConfig = {}
+  config: RequestConfig = {},
 ): Promise<ApiResponse<T>> => {
   return request<T>(ServerType.CORE, path, config);
 };
@@ -102,7 +112,7 @@ export const coreRequest = async <T = unknown>(
  */
 export const chartermateRequest = async <T = unknown>(
   path: string,
-  config: RequestConfig = {}
+  config: RequestConfig = {},
 ): Promise<ApiResponse<T>> => {
   return request<T>(ServerType.CHARTERMATE, path, config);
 };
