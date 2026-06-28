@@ -2,46 +2,48 @@
  * 权限管理页面
  */
 
-import { useState, useEffect } from 'react';
 import {
-  Card,
-  Table,
-  Button,
-  Space,
-  message,
-  Modal,
-  Form,
-  Input,
-  Tag,
-  Popconfirm,
-  Transfer,
-  Descriptions,
-} from 'antd';
-import {
+  DeleteOutlined,
+  KeyOutlined,
   LockOutlined,
   PlusOutlined,
-  DeleteOutlined,
   ReloadOutlined,
   UserOutlined,
-  KeyOutlined,
-} from '@ant-design/icons';
+} from "@ant-design/icons";
 import {
-  getAllRoles,
-  getAllPermissions,
-  getRoleWithPermissions,
+  Button,
+  Card,
+  Descriptions,
+  Form,
+  Input,
+  message,
+  Modal,
+  Popconfirm,
+  Space,
+  Table,
+  Tag,
+  Transfer,
+} from "antd";
+import { useEffect, useState } from "react";
+import { Can } from "../components/Can";
+import type { Permission, Role, RoleWithPermissions } from "../services/core";
+import {
   createRole,
   deleteRole,
+  getAllPermissions,
+  getAllRoles,
+  getRoleWithPermissions,
   grantPermission,
   revokePermission,
-} from '../services/core';
-import type { Permission, Role, RoleWithPermissions } from '../services/core';
-import { Can } from '../components/Can';
+} from "../services/core";
 
 function PermissionManagement() {
   const [loading, setLoading] = useState(false);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [selectedRole, setSelectedRole] = useState<RoleWithPermissions | null>(null);
+  const [selectedRole, setSelectedRole] = useState<RoleWithPermissions | null>(
+    null,
+  );
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [form] = Form.useForm();
 
@@ -50,13 +52,13 @@ function PermissionManagement() {
     setLoading(true);
     try {
       const response = await getAllPermissions();
-      if (response.status === 200) {
+      if (response.success) {
         setPermissions(response.data || []);
       } else {
-        message.error(response.msg);
+        message.error(response.message || response.msg);
       }
     } catch (error) {
-      message.error('加载权限列表失败');
+      message.error("加载权限列表失败");
     } finally {
       setLoading(false);
     }
@@ -67,13 +69,13 @@ function PermissionManagement() {
     setLoading(true);
     try {
       const response = await getAllRoles();
-      if (response.status === 200) {
+      if (response.success) {
         setRoles(response.data || []);
       } else {
-        message.error(response.msg);
+        message.error(response.message || response.msg);
       }
     } catch (error) {
-      message.error('加载角色列表失败');
+      message.error("加载角色列表失败");
     } finally {
       setLoading(false);
     }
@@ -84,13 +86,13 @@ function PermissionManagement() {
     setLoading(true);
     try {
       const response = await getRoleWithPermissions(roleId);
-      if (response.status === 200) {
+      if (response.success) {
         setSelectedRole(response.data || null);
       } else {
-        message.error(response.msg);
+        message.error(response.message || response.msg);
       }
     } catch (error) {
-      message.error('加载角色详情失败');
+      message.error("加载角色详情失败");
     } finally {
       setLoading(false);
     }
@@ -106,16 +108,16 @@ function PermissionManagement() {
     form.validateFields().then(async (values) => {
       try {
         const response = await createRole(values.name, values.description);
-        if (response.status === 200) {
-          message.success('创建角色成功');
+        if (response.success) {
+          message.success("创建角色成功");
           setCreateModalVisible(false);
           form.resetFields();
           loadRoles();
         } else {
-          message.error(response.msg);
+          message.error(response.message || response.msg);
         }
       } catch (error) {
-        message.error('创建角色失败');
+        message.error("创建角色失败");
       }
     });
   };
@@ -124,17 +126,17 @@ function PermissionManagement() {
   const handleDeleteRole = async (roleId: number) => {
     try {
       const response = await deleteRole(roleId);
-      if (response.status === 200) {
-        message.success('删除角色成功');
+      if (response.success) {
+        message.success("删除角色成功");
         if (selectedRole?.id === roleId) {
           setSelectedRole(null);
         }
         loadRoles();
       } else {
-        message.error(response.msg);
+        message.error(response.message || response.msg);
       }
     } catch (error) {
-      message.error('删除角色失败');
+      message.error("删除角色失败");
     }
   };
 
@@ -144,14 +146,14 @@ function PermissionManagement() {
 
     try {
       const response = await grantPermission(selectedRole.id, permissionId);
-      if (response.status === 200) {
-        message.success('授予权限成功');
+      if (response.success) {
+        message.success("授予权限成功");
         loadRoleDetails(selectedRole.id);
       } else {
-        message.error(response.msg);
+        message.error(response.message || response.msg);
       }
     } catch (error) {
-      message.error('授予权限失败');
+      message.error("授予权限失败");
     }
   };
 
@@ -161,14 +163,14 @@ function PermissionManagement() {
 
     try {
       const response = await revokePermission(selectedRole.id, permissionId);
-      if (response.status === 200) {
-        message.success('撤销权限成功');
+      if (response.success) {
+        message.success("撤销权限成功");
         loadRoleDetails(selectedRole.id);
       } else {
-        message.error(response.msg);
+        message.error(response.message || response.msg);
       }
     } catch (error) {
-      message.error('撤销权限失败');
+      message.error("撤销权限失败");
     }
   };
 
@@ -177,7 +179,7 @@ function PermissionManagement() {
   const transferData = permissions.map((p) => ({
     key: p.id,
     title: p.name,
-    description: p.description || '',
+    description: p.description || "",
   }));
 
   // 处理 Transfer 变化
@@ -203,15 +205,15 @@ function PermissionManagement() {
 
   const roleColumns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
       width: 80,
     },
     {
-      title: '角色名称',
-      dataIndex: 'name',
-      key: 'name',
+      title: "角色名称",
+      dataIndex: "name",
+      key: "name",
       render: (text: string, record: Role) => (
         <Space>
           <UserOutlined />
@@ -220,19 +222,25 @@ function PermissionManagement() {
       ),
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      render: (text: string) => text || '-',
+      title: "描述",
+      dataIndex: "description",
+      key: "description",
+      render: (text: string) => text || "-",
     },
     {
-      title: '操作',
-      key: 'action',
+      title: "操作",
+      key: "action",
       width: 150,
       render: (_: unknown, record: Role) => (
-        <Can I="delete" a="Role" fallback={
-          <Button type="link" danger disabled>删除</Button>
-        }>
+        <Can
+          I="delete"
+          a="Role"
+          fallback={
+            <Button type="link" danger disabled>
+              删除
+            </Button>
+          }
+        >
           <Popconfirm
             title="确定删除此角色？"
             onConfirm={() => handleDeleteRole(record.id)}
@@ -250,24 +258,28 @@ function PermissionManagement() {
 
   const permissionColumns = [
     {
-      title: '权限名称',
-      dataIndex: 'name',
-      key: 'name',
+      title: "权限名称",
+      dataIndex: "name",
+      key: "name",
       render: (text: string) => <Tag color="blue">{text}</Tag>,
     },
     {
-      title: '描述',
-      dataIndex: 'description',
-      key: 'description',
-      render: (text: string) => text || '-',
+      title: "描述",
+      dataIndex: "description",
+      key: "description",
+      render: (text: string) => text || "-",
     },
   ];
 
   return (
     <div>
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
+      <Space direction="vertical" size="large" style={{ width: "100%" }}>
         <Card
-          title={<><UserOutlined /> 角色管理</>}
+          title={
+            <>
+              <UserOutlined /> 角色管理
+            </>
+          }
           extra={
             <Can I="create" a="Role" fallback={null}>
               <Button
@@ -292,7 +304,11 @@ function PermissionManagement() {
 
         {selectedRole && (
           <Card
-            title={<><KeyOutlined /> {selectedRole.name} - 权限配置</>}
+            title={
+              <>
+                <KeyOutlined /> {selectedRole.name} - 权限配置
+              </>
+            }
             extra={
               <Button
                 icon={<ReloadOutlined />}
@@ -303,8 +319,12 @@ function PermissionManagement() {
             }
           >
             <Descriptions bordered size="small" style={{ marginBottom: 16 }}>
-              <Descriptions.Item label="角色名称">{selectedRole.name}</Descriptions.Item>
-              <Descriptions.Item label="描述">{selectedRole.description || '-'}</Descriptions.Item>
+              <Descriptions.Item label="角色名称">
+                {selectedRole.name}
+              </Descriptions.Item>
+              <Descriptions.Item label="描述">
+                {selectedRole.description || "-"}
+              </Descriptions.Item>
               <Descriptions.Item label="已有权限">
                 {selectedRole.permissions.length} 个
               </Descriptions.Item>
@@ -313,9 +333,11 @@ function PermissionManagement() {
             <Can I="manage" a="Role">
               <Transfer
                 dataSource={transferData}
-                titles={['可授权限', '已授权限']}
+                titles={["可授权限", "已授权限"]}
                 targetKeys={rolePermissions as any}
-                onChange={(targetKeys) => handleTransferChange(targetKeys as string[])}
+                onChange={(targetKeys) =>
+                  handleTransferChange(targetKeys as string[])
+                }
                 render={(item) => item.title!}
                 listStyle={{
                   width: 400,
@@ -325,7 +347,9 @@ function PermissionManagement() {
             </Can>
 
             {!selectedRole.permissions.length ? (
-              <div style={{ marginTop: 16, textAlign: 'center', color: '#999' }}>
+              <div
+                style={{ marginTop: 16, textAlign: "center", color: "#999" }}
+              >
                 暂未配置权限
               </div>
             ) : (
@@ -341,11 +365,18 @@ function PermissionManagement() {
           </Card>
         )}
 
-        <Card title={<><LockOutlined /> 系统权限</>} extra={
-          <Button icon={<ReloadOutlined />} onClick={loadPermissions}>
-            刷新
-          </Button>
-        }>
+        <Card
+          title={
+            <>
+              <LockOutlined /> 系统权限
+            </>
+          }
+          extra={
+            <Button icon={<ReloadOutlined />} onClick={loadPermissions}>
+              刷新
+            </Button>
+          }
+        >
           <Table
             columns={permissionColumns}
             dataSource={permissions}
@@ -371,7 +402,7 @@ function PermissionManagement() {
           <Form.Item
             name="name"
             label="角色名称"
-            rules={[{ required: true, message: '请输入角色名称' }]}
+            rules={[{ required: true, message: "请输入角色名称" }]}
           >
             <Input placeholder="请输入角色名称" />
           </Form.Item>

@@ -67,7 +67,7 @@ function UserManagement() {
     try {
       const response = await getUserList();
       console.log(response);
-      
+
       if (response.status === 200) {
         // 确保每个用户都有默认状态
         const usersWithStatus = (response.data || []).map((user: UserInfo) => ({
@@ -158,13 +158,13 @@ function UserManagement() {
         force: true, // 强制修改标志
       });
 
-      if (result.status === 200) {
+      if (result.success) {
         message.success("密码修改成功");
         setEditModalData({ visible: false, userId: 0, username: "" });
         editForm.resetFields();
         loadUsers();
       } else {
-        message.error(result.msg);
+        message.error(result.message || result.msg);
       }
     } catch (error) {
       message.error("修改密码失败");
@@ -181,11 +181,11 @@ function UserManagement() {
       const newStatus = checked ? UserStatus.ACTIVE : UserStatus.INACTIVE;
       const result = await updateUserStatus({ userId, status: newStatus });
 
-      if (result.status === 200) {
+      if (result.success) {
         message.success(`用户 ${username} ${checked ? "已启用" : "已停用"}`);
         loadUsers();
       } else {
-        message.error(result.msg);
+        message.error(result.message || result.msg);
       }
     } catch (error) {
       message.error("更新状态失败");

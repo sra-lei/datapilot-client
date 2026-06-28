@@ -99,7 +99,7 @@ export function PermissionProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     try {
       const response = await getUserPermissions(user.id);
-      if (response.status === 200 && response.data) {
+      if (response.success && response.data) {
         const updatedUser = {
           ...user,
           roles: response.data.roles.map((r) => r.name),
