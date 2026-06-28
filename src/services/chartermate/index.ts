@@ -7,3 +7,4 @@ export * from './types';
 export * from './system';
 export * from './database';
 export * from './cache';
+export * from './chat';

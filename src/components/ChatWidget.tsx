@@ -5,11 +5,13 @@
 import {
   CloseOutlined,
   FullscreenOutlined,
+  LoadingOutlined,
   MessageOutlined,
   MinusOutlined,
 } from "@ant-design/icons";
 import { Button, Input, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { chatStream } from "../services/chartermate";
 import type { ChatMessage } from "../types";
 
 function ChatWidget() {
@@ -17,6 +19,7 @@ function ChatWidget() {
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,8 +28,8 @@ function ChatWidget() {
     }
   }, [messages, isOpen, isMinimized]);
 
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
+  const handleSend = async () => {
+    if (!inputValue.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
@@ -36,17 +39,50 @@ function ChatWidget() {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const question = inputValue.trim();
     setInputValue("");
+    setIsLoading(true);
 
-    setTimeout(() => {
-      const agentMessage: ChatMessage = {
-        id: Date.now() + 1,
-        sender: "agent",
-        content: "您好，我是智能客服。收到您的消息：" + inputValue.trim(),
-        timestamp: new Date().toLocaleTimeString("zh-CN"),
-      };
-      setMessages((prev) => [...prev, agentMessage]);
-    }, 1000);
+    // 创建一个空的 agent message 用于流式显示
+    const agentMessageId = Date.now() + 1;
+    const agentMessage: ChatMessage = {
+      id: agentMessageId,
+      sender: "agent",
+      content: "",
+      timestamp: new Date().toLocaleTimeString("zh-CN"),
+    };
+
+    setMessages((prev) => [...prev, agentMessage]);
+
+    // 调用 CharterMate 流式接口
+    await chatStream(
+      question,
+      (token: string) => {
+        // 实时更新消息内容
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === agentMessageId
+              ? { ...msg, content: msg.content + token }
+              : msg,
+          ),
+        );
+      },
+      () => {
+        // 完成
+        setIsLoading(false);
+      },
+      (error: Error) => {
+        // 错误处理
+        setIsLoading(false);
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === agentMessageId
+              ? { ...msg, content: `抱歉，系统出现错误：${error.message}` }
+              : msg,
+          ),
+        );
+      },
+    );
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -214,10 +250,11 @@ function ChatWidget() {
               placeholder="输入消息..."
               style={{ marginBottom: 8 }}
               allowClear
+              disabled={isLoading}
             />
             <Space style={{ justifyContent: "flex-end", width: "100%" }}>
-              <Button onClick={handleSend} type="primary">
-                发送
+              <Button onClick={handleSend} type="primary" disabled={isLoading}>
+                {isLoading ? <LoadingOutlined /> : "发送"}
               </Button>
             </Space>
           </div>
