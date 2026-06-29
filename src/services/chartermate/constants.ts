@@ -12,4 +12,9 @@ export const CHARTERMATE_API = {
   CACHE: {
     STATS: "/api/v1/cache/stats",
   },
+
+  // 网关相关
+  GATEWAY: {
+    STATS: "/api/v1/gateway/stats",
+  },
 } as const;

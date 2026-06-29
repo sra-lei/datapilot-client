@@ -22,8 +22,10 @@ function SystemSettings() {
   const [form] = Form.useForm();
   const [healthLoading, setHealthLoading] = useState(false);
   const [cacheLoading, setCacheLoading] = useState(false);
+  const [gatewayLoading, setGatewayLoading] = useState(false);
   const [healthData, setHealthData] = useState<any>(null);
   const [cacheData, setCacheData] = useState<any>(null);
+  const [gatewayData, setGatewayData] = useState<any>(null);
 
   // 加载服务健康状态
   const loadHealthStatus = async () => {
@@ -59,16 +61,35 @@ function SystemSettings() {
     }
   };
 
+  // 加载网关统计信息
+  const loadGatewayStats = async () => {
+    setGatewayLoading(true);
+    try {
+      const result = await getGatewayStats();
+      if (result.success) {
+        setGatewayData(result.data);
+      } else {
+        message.error(result.message || result.msg || "获取网关统计失败");
+      }
+    } catch (error) {
+      message.error("获取网关统计失败");
+    } finally {
+      setGatewayLoading(false);
+    }
+  };
+
   // 初始化加载
   useEffect(() => {
     loadHealthStatus();
     loadCacheStats();
+    loadGatewayStats();
   }, []);
 
   // 刷新所有数据
   const handleRefresh = () => {
     loadHealthStatus();
     loadCacheStats();
+    loadGatewayStats();
     message.success("正在刷新数据...");
   };
 
@@ -91,7 +112,7 @@ function SystemSettings() {
                   type="primary"
                   icon={<ReloadOutlined />}
                   onClick={handleRefresh}
-                  loading={healthLoading || cacheLoading}
+                  loading={healthLoading || cacheLoading || gatewayLoading}
                 >
                   刷新
                 </Button>
@@ -224,6 +245,113 @@ function SystemSettings() {
                         缓存数量
                       </div>
                     </div>
+                  </div>
+                </div>
+              ) : (
+                <div>暂无数据</div>
+              )}
+            </Card>
+          </Spin>
+        </Col>
+      </Row>
+
+      {/* 网关状态 */}
+      <Row gutter={[16, 16]}>
+        <Col span={12}>
+          <Spin spinning={gatewayLoading}>
+            <Card type="inner" title="网关状态">
+              {gatewayData ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "flex-start",
+                    gap: 8,
+                  }}
+                >
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span style={{ color: "#888", fontSize: 14 }}>
+                      总调用数:
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: "#1890ff",
+                      }}
+                    >
+                      {gatewayData.total_calls}
+                    </span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span style={{ color: "#888", fontSize: 14 }}>成功数:</span>
+                    <span
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: "#52c41a",
+                      }}
+                    >
+                      {gatewayData.success_calls}
+                    </span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span style={{ color: "#888", fontSize: 14 }}>
+                      备用调用:
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: "#faad14",
+                      }}
+                    >
+                      {gatewayData.fallback_calls}
+                    </span>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span style={{ color: "#888", fontSize: 14 }}>
+                      熔断器状态:
+                    </span>
+                    <Tag
+                      color={
+                        gatewayData.circuit_state === "closed"
+                          ? "success"
+                          : gatewayData.circuit_state === "open"
+                            ? "error"
+                            : "warning"
+                      }
+                    >
+                      {gatewayData.circuit_state === "closed"
+                        ? "正常"
+                        : gatewayData.circuit_state === "open"
+                          ? "熔断"
+                          : "半开"}
+                    </Tag>
+                  </div>
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span style={{ color: "#888", fontSize: 14 }}>
+                      熔断失败数:
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "bold",
+                        color: "#ff4d4f",
+                      }}
+                    >
+                      {gatewayData.circuit_failures}
+                    </span>
                   </div>
                 </div>
               ) : (
