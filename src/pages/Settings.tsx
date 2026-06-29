@@ -143,6 +143,7 @@ function SystemSettings() {
             <Card
               type="inner"
               title="健康状态"
+              style={{ height: 180 }}
               extra={
                 <Button
                   type="primary"
@@ -286,7 +287,7 @@ function SystemSettings() {
 
         <Col span={8}>
           <Spin spinning={gatewayLoading}>
-            <Card type="inner" title="网关状态">
+            <Card type="inner" title="网关状态" style={{ height: 180 }}>
               {gatewayData ? (
                 <div
                   style={{
