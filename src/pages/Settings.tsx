@@ -170,34 +170,26 @@ function SystemSettings() {
 
         <Col span={8}>
           <Spin spinning={cacheLoading}>
-            <Card type="inner" title="缓存统计">
+            <Card type="inner" title="缓存统计" style={{ height: 180 }}>
               {cacheData ? (
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                  }}
-                >
-                  {/* 圆形进度条显示命中率 */}
-                  <div
-                    style={{ position: "relative", width: 100, height: 100 }}
-                  >
-                    <svg width="100" height="100" viewBox="0 0 100 100">
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {/* 左侧：圆形进度条显示命中率 */}
+                  <div style={{ position: "relative", width: 80, height: 80 }}>
+                    <svg width="80" height="80" viewBox="0 0 80 80">
                       {/* 背景圆环 */}
                       <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
+                        cx="40"
+                        cy="40"
+                        r="32"
                         fill="none"
                         stroke="#f0f0f0"
-                        strokeWidth="8"
+                        strokeWidth="6"
                       />
                       {/* 进度圆环 */}
                       <circle
-                        cx="50"
-                        cy="50"
-                        r="40"
+                        cx="40"
+                        cy="40"
+                        r="32"
                         fill="none"
                         stroke={
                           parseFloat(cacheData.hit_rate) >= 80
@@ -206,11 +198,11 @@ function SystemSettings() {
                               ? "#faad14"
                               : "#ff4d4f"
                         }
-                        strokeWidth="8"
+                        strokeWidth="6"
                         strokeLinecap="round"
-                        transform="rotate(-90 50 50)"
+                        transform="rotate(-90 40 40)"
                         style={{
-                          strokeDasharray: `${(getProgressPercent(cacheData.hit_rate) / 100) * 2 * Math.PI * 40} ${2 * Math.PI * 40}`,
+                          strokeDasharray: `${(getProgressPercent(cacheData.hit_rate) / 100) * 2 * Math.PI * 32} ${2 * Math.PI * 32}`,
                           transition: "stroke-dasharray 0.5s ease",
                         }}
                       />
@@ -227,21 +219,26 @@ function SystemSettings() {
                     >
                       <div
                         style={{
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: "bold",
                           color: "#1890ff",
                         }}
                       >
                         {cacheData.hit_rate}
                       </div>
-                      <div style={{ fontSize: 10, color: "#888" }}>命中率</div>
+                      <div style={{ fontSize: 9, color: "#888" }}>命中率</div>
                     </div>
                   </div>
 
-                  {/* 文本信息 */}
-                  <div style={{ marginTop: 12, display: "flex", gap: 16 }}>
-                    <div style={{ textAlign: "center" }}>
-                      <div
+                  {/* 右侧：统计数据 */}
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 12 }}>命中:</span>
+                      <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
@@ -249,11 +246,15 @@ function SystemSettings() {
                         }}
                       >
                         {cacheData.hits}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#888" }}>命中</div>
+                      </span>
                     </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 12 }}>
+                        未命中:
+                      </span>
+                      <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
@@ -261,11 +262,13 @@ function SystemSettings() {
                         }}
                       >
                         {cacheData.misses}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#888" }}>未命中</div>
+                      </span>
                     </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 12 }}>缓存:</span>
+                      <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
@@ -273,8 +276,7 @@ function SystemSettings() {
                         }}
                       >
                         {cacheData.size}
-                      </div>
-                      <div style={{ fontSize: 10, color: "#888" }}>缓存</div>
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -290,55 +292,9 @@ function SystemSettings() {
             <Card type="inner" title="网关状态" style={{ height: 180 }}>
               {gatewayData ? (
                 <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "flex-start",
-                    gap: 6,
-                  }}
+                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
                 >
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span style={{ color: "#888", fontSize: 12 }}>总调用:</span>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "bold",
-                        color: "#1890ff",
-                      }}
-                    >
-                      {gatewayData.total_calls}
-                    </span>
-                  </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span style={{ color: "#888", fontSize: 12 }}>成功:</span>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "bold",
-                        color: "#52c41a",
-                      }}
-                    >
-                      {gatewayData.success_calls}
-                    </span>
-                  </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span style={{ color: "#888", fontSize: 12 }}>备用:</span>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "bold",
-                        color: "#faad14",
-                      }}
-                    >
-                      {gatewayData.fallback_calls}
-                    </span>
-                  </div>
+                  {/* 第一行：熔断器状态 */}
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 6 }}
                   >
@@ -359,19 +315,65 @@ function SystemSettings() {
                           : "半开"}
                     </Tag>
                   </div>
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span style={{ color: "#888", fontSize: 12 }}>失败数:</span>
-                    <span
-                      style={{
-                        fontSize: 14,
-                        fontWeight: "bold",
-                        color: "#ff4d4f",
-                      }}
+
+                  {/* 第二行：其他统计数据横向排列 */}
+                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      {gatewayData.circuit_failures}
-                    </span>
+                      <span style={{ color: "#888", fontSize: 11 }}>调用:</span>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "bold",
+                          color: "#1890ff",
+                        }}
+                      >
+                        {gatewayData.total_calls}
+                      </span>
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 11 }}>成功:</span>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "bold",
+                          color: "#52c41a",
+                        }}
+                      >
+                        {gatewayData.success_calls}
+                      </span>
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 11 }}>备用:</span>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "bold",
+                          color: "#faad14",
+                        }}
+                      >
+                        {gatewayData.fallback_calls}
+                      </span>
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 4 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 11 }}>失败:</span>
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: "bold",
+                          color: "#ff4d4f",
+                        }}
+                      >
+                        {gatewayData.circuit_failures}
+                      </span>
+                    </div>
                   </div>
                 </div>
               ) : (
