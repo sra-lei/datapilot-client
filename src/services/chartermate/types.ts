@@ -16,6 +16,14 @@ export interface CacheStats {
   size: number;
 }
 
+// 语义缓存统计类型
+export interface SemanticCacheStats {
+  hits: number;
+  misses: number;
+  hit_rate: string;
+  threshold: number;
+}
+
 // 网关统计类型
 export interface GatewayStats {
   total_calls: number;

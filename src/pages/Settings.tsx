@@ -27,9 +27,11 @@ function SystemSettings() {
   const [healthLoading, setHealthLoading] = useState(false);
   const [cacheLoading, setCacheLoading] = useState(false);
   const [gatewayLoading, setGatewayLoading] = useState(false);
+  const [semanticCacheLoading, setSemanticCacheLoading] = useState(false);
   const [healthData, setHealthData] = useState<any>(null);
   const [cacheData, setCacheData] = useState<any>(null);
   const [gatewayData, setGatewayData] = useState<any>(null);
+  const [semanticCacheData, setSemanticCacheData] = useState<any>(null);
 
   // 加载服务健康状态
   const loadHealthStatus = async () => {
@@ -82,11 +84,29 @@ function SystemSettings() {
     }
   };
 
+  // 加载语义缓存统计信息
+  const loadSemanticCacheStats = async () => {
+    setSemanticCacheLoading(true);
+    try {
+      const result = await getSemanticCacheStats();
+      if (result.success) {
+        setSemanticCacheData(result.data);
+      } else {
+        message.error(result.message || result.msg || "获取语义缓存统计失败");
+      }
+    } catch (error) {
+      message.error("获取语义缓存统计失败");
+    } finally {
+      setSemanticCacheLoading(false);
+    }
+  };
+
   // 初始化加载
   useEffect(() => {
     loadHealthStatus();
     loadCacheStats();
     loadGatewayStats();
+    loadSemanticCacheStats();
   }, []);
 
   // 刷新所有数据
@@ -94,6 +114,7 @@ function SystemSettings() {
     loadHealthStatus();
     loadCacheStats();
     loadGatewayStats();
+    loadSemanticCacheStats();
     message.success("正在刷新数据...");
   };
 
@@ -149,7 +170,12 @@ function SystemSettings() {
                   type="primary"
                   icon={<ReloadOutlined />}
                   onClick={handleRefresh}
-                  loading={healthLoading || cacheLoading || gatewayLoading}
+                  loading={
+                    healthLoading ||
+                    cacheLoading ||
+                    gatewayLoading ||
+                    semanticCacheLoading
+                  }
                 >
                   刷新
                 </Button>
@@ -372,6 +398,130 @@ function SystemSettings() {
                         }}
                       >
                         {gatewayData.circuit_failures}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>暂无数据</div>
+              )}
+            </Card>
+          </Spin>
+        </Col>
+      </Row>
+
+      {/* 语义缓存 */}
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <Spin spinning={semanticCacheLoading}>
+            <Card type="inner" title="语义缓存">
+              {semanticCacheData ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  {/* 左侧：圆形进度条显示命中率 */}
+                  <div style={{ position: "relative", width: 80, height: 80 }}>
+                    <svg width="80" height="80" viewBox="0 0 80 80">
+                      {/* 背景圆环 */}
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="32"
+                        fill="none"
+                        stroke="#f0f0f0"
+                        strokeWidth="6"
+                      />
+                      {/* 进度圆环 */}
+                      <circle
+                        cx="40"
+                        cy="40"
+                        r="32"
+                        fill="none"
+                        stroke={
+                          parseFloat(semanticCacheData.hit_rate) >= 80
+                            ? "#52c41a"
+                            : parseFloat(semanticCacheData.hit_rate) >= 50
+                              ? "#faad14"
+                              : "#ff4d4f"
+                        }
+                        strokeWidth="6"
+                        strokeLinecap="round"
+                        transform="rotate(-90 40 40)"
+                        style={{
+                          strokeDasharray: `${(getProgressPercent(semanticCacheData.hit_rate) / 100) * 2 * Math.PI * 32} ${2 * Math.PI * 32}`,
+                          transition: "stroke-dasharray 0.5s ease",
+                        }}
+                      />
+                    </svg>
+                    {/* 中心文字 */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%, -50%)",
+                        textAlign: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 16,
+                          fontWeight: "bold",
+                          color: "#1890ff",
+                        }}
+                      >
+                        {semanticCacheData.hit_rate}
+                      </div>
+                      <div style={{ fontSize: 9, color: "#888" }}>命中率</div>
+                    </div>
+                  </div>
+
+                  {/* 右侧：统计数据 */}
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
+                  >
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 12 }}>命中:</span>
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "bold",
+                          color: "#52c41a",
+                        }}
+                      >
+                        {semanticCacheData.hits}
+                      </span>
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 12 }}>
+                        未命中:
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "bold",
+                          color: "#ff4d4f",
+                        }}
+                      >
+                        {semanticCacheData.misses}
+                      </span>
+                    </div>
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    >
+                      <span style={{ color: "#888", fontSize: 12 }}>
+                        相似度阈值:
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 14,
+                          fontWeight: "bold",
+                          color: "#1890ff",
+                        }}
+                      >
+                        {semanticCacheData.threshold}
                       </span>
                     </div>
                   </div>

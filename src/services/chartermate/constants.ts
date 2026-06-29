@@ -11,6 +11,7 @@ export const CHARTERMATE_API = {
   // 缓存相关
   CACHE: {
     STATS: "/api/v1/cache/stats",
+    SEMANTIC_STATS: "/api/v1/cache/semantic/stats",
   },
 
   // 网关相关
