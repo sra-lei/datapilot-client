@@ -1,0 +1,6 @@
+services:
+  client:
+    image: ${IMAGE_NAME:-sra-lei/client:latest}
+    container_name: trae-client
+    volumes:
+      - ./dist:/app/dist

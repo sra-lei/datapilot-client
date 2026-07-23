@@ -20,6 +20,7 @@ import {
   checkHealth,
   getCacheStats,
   getGatewayStats,
+  getSemanticCacheStats,
 } from "../services/chartermate";
 
 function SystemSettings() {
