@@ -1,4 +1,3 @@
-# 构建阶段
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -9,11 +8,15 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# 运行阶段：仅提供静态文件
-FROM node:20-alpine
+FROM nginx:alpine
 
-WORKDIR /app
+RUN apk add --no-cache tzdata \
+    && ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
+    && echo "Asia/Shanghai" > /etc/timezone
 
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-VOLUME ["/app/dist"]
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
