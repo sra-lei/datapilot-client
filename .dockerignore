@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+.gitignore
+*.log
+.env
+.env.*
+!.env.production
+.DS_Store
+.vscode
+*.tsbuildinfo

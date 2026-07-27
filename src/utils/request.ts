@@ -26,24 +26,12 @@ const defaultConfig: RequestConfig = {
 
 /**
  * 获取请求 URL
- * 开发环境：使用相对路径（通过 Vite 代理）
- * 生产环境：使用环境变量配置的完整 URL
+ * 开发和生产环境都使用相对路径
+ * - 开发：Vite 代理转发
+ * - 生产：Nginx 反向代理转发
  */
-const getRequestUrl = (serverType: ServerType, path: string): string => {
-  // 开发环境使用相对路径（通过 Vite 代理）
-  if (import.meta.env.DEV) {
-    return path; // 直接返回相对路径，如 '/core/user/login' 或 '/api/v1/health'
-  }
-
-  // 生产环境使用完整 URL
-  const coreUrl =
-    import.meta.env.VITE_SERVER_CORE_URL || "http://localhost:3002";
-  const chartermateUrl =
-    import.meta.env.VITE_SERVER_CHARTERMATE_URL || "http://localhost:8000";
-
-  return serverType === ServerType.CHARTERMATE
-    ? `${chartermateUrl}${path}`
-    : `${coreUrl}${path}`;
+const getRequestUrl = (_serverType: ServerType, path: string): string => {
+  return path;
 };
 
 /**
@@ -89,9 +77,9 @@ export async function request<T = unknown>(
     console.error(`请求失败 ${url}:`, error);
     return {
       code: 500,
-      message: error instanceof Error ? error.message : '请求失败',
+      message: error instanceof Error ? error.message : "请求失败",
       status: 500,
-      msg: error instanceof Error ? error.message : '请求失败',
+      msg: error instanceof Error ? error.message : "请求失败",
       success: false,
     };
   }

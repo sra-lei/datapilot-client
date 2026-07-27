@@ -4,17 +4,12 @@
 
 /**
  * 获取请求 URL
- * 开发环境：使用相对路径（通过 Vite 代理）
- * 生产环境：使用环境变量配置的完整 URL
+ * 开发和生产环境都使用相对路径
+ * - 开发：Vite 代理转发
+ * - 生产：Nginx 反向代理转发
  */
 const getRequestUrl = (path: string): string => {
-  if (import.meta.env.DEV) {
-    return path;
-  }
-
-  const chartermateUrl =
-    import.meta.env.VITE_SERVER_CHARTERMATE_URL || "http://localhost:8000";
-  return `${chartermateUrl}${path}`;
+  return path;
 };
 
 /**
