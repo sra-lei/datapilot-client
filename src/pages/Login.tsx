@@ -67,7 +67,7 @@ function Login() {
               fontWeight: "bold",
             }}
           >
-            Trae 管理系统
+            知行 InsightForge 管理系统
           </div>
         }
       >

@@ -2,10 +2,14 @@
  * 主布局组件
  */
 
+import ChatWidget from "@/components/ChatWidget";
+import { getThemeConfig } from "@/config/theme";
 import {
+  BarChartOutlined,
   BulbOutlined,
   DashboardOutlined,
   FileTextOutlined,
+  InfoCircleOutlined,
   LogoutOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
@@ -13,11 +17,19 @@ import {
   UserSwitchOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
-import { Avatar, Dropdown, Layout, Menu, Space, Switch, Tooltip } from "antd";
+import {
+  Avatar,
+  ConfigProvider,
+  Dropdown,
+  Layout,
+  Menu,
+  Space,
+  Switch,
+  Tooltip,
+} from "antd";
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { usePermission } from "../contexts/PermissionContext";
-import ChatWidget from "@/components/ChatWidget";
 
 const { Header, Sider, Content } = Layout;
 
@@ -43,6 +55,12 @@ function MainLayout() {
       icon: <DashboardOutlined />,
       label: "仪表盘",
       permission: null, // 所有人可见
+    },
+    {
+      key: "/rag-dashboard",
+      icon: <BarChartOutlined />,
+      label: "RAG 看板",
+      permission: null,
     },
     {
       key: "/users",
@@ -73,6 +91,12 @@ function MainLayout() {
           label: "CharterMate",
         },
       ],
+    },
+    {
+      key: "/about",
+      icon: <InfoCircleOutlined />,
+      label: "关于",
+      permission: null,
     },
   ];
 
@@ -146,77 +170,70 @@ function MainLayout() {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        style={{
-          background: "#001529",
-        }}
-      >
-        <div
-          style={{
-            height: 64,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
-            fontSize: collapsed ? "16px" : "18px",
-            fontWeight: "bold",
-          }}
-        >
-          Trae
-        </div>
-        <Menu
-          theme="dark"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-        />
-      </Sider>
-      <Layout>
-        <Header
-          style={{
-            background: "#fff",
-            padding: "0 24px",
-            boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "flex-end",
-          }}
-        >
-          <Space size="middle" style={{ marginRight: 16 }}>
-            <Tooltip title={isDarkMode ? "切换到浅色模式" : "切换到深色模式"}>
-              <Switch
-                checked={isDarkMode}
-                onChange={setIsDarkMode}
-                checkedChildren={<BulbOutlined />}
-                unCheckedChildren={<BulbOutlined />}
-              />
-            </Tooltip>
-          </Space>
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <Space style={{ cursor: "pointer" }}>
-              <span>{username}</span>
-              <Avatar icon={<UserOutlined />} />
+    <ConfigProvider theme={getThemeConfig(isDarkMode)}>
+      <Layout style={{ minHeight: "100vh" }}>
+        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+          <div
+            style={{
+              height: 64,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+              fontSize: collapsed ? "16px" : "18px",
+              fontWeight: "bold",
+            }}
+          >
+            {collapsed ? "知行" : "知行 InsightForge"}
+          </div>
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[location.pathname]}
+            items={menuItems}
+            onClick={handleMenuClick}
+          />
+        </Sider>
+        <Layout>
+          <Header
+            style={{
+              padding: "0 24px",
+              boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "flex-end",
+            }}
+          >
+            <Space size="middle" style={{ marginRight: 16 }}>
+              <Tooltip title={isDarkMode ? "切换到浅色模式" : "切换到深色模式"}>
+                <Switch
+                  checked={isDarkMode}
+                  onChange={setIsDarkMode}
+                  checkedChildren={<BulbOutlined />}
+                  unCheckedChildren={<BulbOutlined />}
+                />
+              </Tooltip>
             </Space>
-          </Dropdown>
-        </Header>
-        <Content
-          style={{
-            margin: "24px 16px",
-            padding: 24,
-            minHeight: 280,
-            background: "#f0f2f5",
-          }}
-        >
-          <Outlet />
-        </Content>
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <Space style={{ cursor: "pointer" }}>
+                <span>{username}</span>
+                <Avatar icon={<UserOutlined />} />
+              </Space>
+            </Dropdown>
+          </Header>
+          <Content
+            style={{
+              margin: "24px 16px",
+              padding: 24,
+              minHeight: 280,
+            }}
+          >
+            <Outlet />
+          </Content>
+        </Layout>
+        <ChatWidget />
       </Layout>
-      <ChatWidget />
-    </Layout>
+    </ConfigProvider>
   );
 }
 

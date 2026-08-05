@@ -18,4 +18,9 @@ export const CHARTERMATE_API = {
   GATEWAY: {
     STATS: "/api/v1/gateway/stats",
   },
+
+  // 评估相关
+  EVAL: {
+    STATS: "/api/v1/stats/eval",
+  },
 } as const;

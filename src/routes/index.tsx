@@ -4,12 +4,14 @@
 
 import { createBrowserRouter, Navigate, RouteObject } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
+import About from "../pages/About";
 import Dashboard from "../pages/Dashboard";
 import DatabaseViewer from "../pages/DatabaseViewer";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
 import PermissionManagement from "../pages/Permissions";
 import Profile from "../pages/Profile";
+import RagDashboard from "../pages/RagDashboard";
 import Register from "../pages/Register";
 import SystemSettings from "../pages/Settings";
 import UserManagement from "../pages/Users";
@@ -49,6 +51,14 @@ const protectedRoutes: RouteObject[] = [
       {
         path: "/dashboard",
         element: <Dashboard />,
+      },
+      {
+        path: "/rag-dashboard",
+        element: <RagDashboard />,
+      },
+      {
+        path: "/about",
+        element: <About />,
       },
       {
         path: "/database",

@@ -42,7 +42,7 @@ const getEnvBoolean = (key: string, defaultValue: boolean): boolean => {
 
 // 应用配置实例
 export const config: AppConfig = {
-  title: getEnv('VITE_APP_TITLE', 'Trae Management'),
+  title: getEnv('VITE_APP_TITLE', 'InsightForge Management'),
   version: getEnv('VITE_APP_VERSION', '1.0.0'),
   apiPrefix: getEnv('VITE_API_PREFIX', '/core'),
   enableMock: getEnvBoolean('VITE_ENABLE_MOCK', false),

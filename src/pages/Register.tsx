@@ -55,7 +55,7 @@ function Register() {
               fontWeight: "bold",
             }}
           >
-            Trae 管理系统 - 注册
+            知行 InsightForge 管理系统 - 注册
           </div>
         }
       >
