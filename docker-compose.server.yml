@@ -1,0 +1,19 @@
+# ============================================
+# DataPolit Client 生产环境部署（服务器拉镜像版）
+# 使用: docker compose -f docker-compose.server.yml up -d
+# ============================================
+
+services:
+  client:
+    image: docker.cnb.cool/sra_lei/datapolit-client:latest
+    container_name: datapolit-client
+    ports:
+      - "80:80"
+    env_file:
+      - .env.production
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
