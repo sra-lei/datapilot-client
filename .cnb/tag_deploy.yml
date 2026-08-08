@@ -1,0 +1,17 @@
+environments:
+  - name: development
+    description: Development environment
+    env:
+      name: development
+      tag_name: $CNB_BRANCH
+    deploy:
+      - name: 部署前端
+        env:
+          module: frontend
+    button:
+      - name: 生成发布说明
+        description: 自动生成 Release Notes
+        event: web_trigger_release_notes
+        env:
+          a: 1
+          b: 2
