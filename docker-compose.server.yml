@@ -9,8 +9,6 @@ services:
     container_name: datapolit-client
     ports:
       - "80:80"
-    env_file:
-      - .env.production
     restart: unless-stopped
     logging:
       driver: json-file
