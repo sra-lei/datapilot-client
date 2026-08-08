@@ -3,8 +3,15 @@ main:
     - services:
         - docker
       stages:
-        # 同名镜像构建&推送
-        - name: Docker build
-          script: docker build -t docker.cnb.cool/sra_lei/datapolit-client:latest .
-        - name: Docker push
-          script: docker push docker.cnb.cool/sra_lei/datapolit-client:latest
+        - name: 构建镜像
+          script: docker build -t ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest .
+        - name: 推送镜像
+          script: docker push ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
+        - name: 部署到轻量服务器
+          script: |
+            mkdir -p ~/.ssh && echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+            ssh -o StrictHostKeyChecking=no root@${SERVER_IP} "
+              docker pull ${CNB_DOCKER_REGISTRY}/${CNB_REPO_SLUG_LOWERCASE}:latest
+              cd ${DEPLOY_PATH}
+              docker compose up -d
+            "
