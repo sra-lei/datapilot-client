@@ -1,0 +1,32 @@
+# CNB CI/CD 配置 - Trae Management Client
+# 语法参考: https://docs.cnb.cool/zh/build/grammar.html
+
+main:
+  push:
+    # Stage 1: 代码检查与构建
+    - docker:
+        image: node:20-alpine
+      stages:
+        - name: Install dependencies
+          script: npm ci
+        - name: Lint
+          script: npm run lint
+        - name: Build
+          script: npm run build
+
+    # Stage 2: Docker 镜像构建与推送
+    - services:
+        - docker
+      stages:
+        - name: Set image tag
+          script: echo -n $(date "+%Y%m%d%H%M%S") > .IMAGE_TAG
+          exports:
+            info: IMAGE_TAG
+        - name: Docker login
+          script: docker login -u ${DOCKER_USERNAME} -p "${DOCKER_PASSWORD}" ${DOCKER_REGISTRY}
+        - name: Docker build
+          script: docker build -t ${IMAGE_NAME}:${IMAGE_TAG} -t ${IMAGE_NAME}:latest .
+        - name: Docker push
+          script:
+            - docker push ${IMAGE_NAME}:${IMAGE_TAG}
+            - docker push ${IMAGE_NAME}:latest

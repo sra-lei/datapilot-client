@@ -9,13 +9,13 @@ export default defineConfig({
     proxy: {
       // 主服务器代理（Node.js Server）- Core Service
       '/core': {
-        target: 'http://localhost:3002',
+        target: 'http://119.91.103.179:3002',
         changeOrigin: true,
         rewrite: (path) => path,
       },
       // 业务服务器代理（Python Server）
       '/api/v1': {
-        target: 'http://localhost:8000',
+        target: 'http://119.91.103.179:8000',
         changeOrigin: true,
         rewrite: (path) => path,
       },
