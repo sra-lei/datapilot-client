@@ -1,6 +1,7 @@
 # ============================================
 # DataPolit Client 生产环境部署（服务器拉镜像版）
 # 使用: docker compose -f docker-compose.server.yml up -d
+# 依赖共享外部网络 datapolit-shared（先手动创建）
 # ============================================
 
 services:
@@ -9,9 +10,15 @@ services:
     container_name: datapolit-client
     ports:
       - "80:80"
+    networks:
+      - datapolit-shared
     restart: unless-stopped
     logging:
       driver: json-file
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  datapolit-shared:
+    external: true
