@@ -91,11 +91,9 @@ function RagDashboard() {
       const result = await getCacheStats();
       if (result.success) {
         setCacheData(result.data);
-      } else {
-        message.error(result.message || result.msg || "获取缓存统计失败");
       }
     } catch (error) {
-      message.error("获取缓存统计失败");
+      console.error("获取缓存统计失败:", error);
     } finally {
       setCacheLoading(false);
     }
@@ -108,11 +106,9 @@ function RagDashboard() {
       const result = await getGatewayStats();
       if (result.success) {
         setGatewayData(result.data);
-      } else {
-        message.error(result.message || result.msg || "获取网关统计失败");
       }
     } catch (error) {
-      message.error("获取网关统计失败");
+      console.error("获取网关统计失败:", error);
     } finally {
       setGatewayLoading(false);
     }
@@ -125,11 +121,9 @@ function RagDashboard() {
       const result = await getSemanticCacheStats();
       if (result.success) {
         setSemanticCacheData(result.data);
-      } else {
-        message.error(result.message || result.msg || "获取语义缓存统计失败");
       }
     } catch (error) {
-      message.error("获取语义缓存统计失败");
+      console.error("获取语义缓存统计失败:", error);
     } finally {
       setSemanticCacheLoading(false);
     }

@@ -19,8 +19,8 @@ export const CHARTERMATE_API = {
     STATS: "/api/v1/gateway/stats",
   },
 
-  // 评估相关
+  // 评估相关（由 Core 服务提供）
   EVAL: {
-    STATS: "/api/v1/stats/eval",
+    STATS: "/core/stats/eval",
   },
 } as const;
