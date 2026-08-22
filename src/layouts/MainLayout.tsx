@@ -8,7 +8,7 @@ import {
   BarChartOutlined,
   BulbOutlined,
   DashboardOutlined,
-  FileTextOutlined,
+  InboxOutlined,
   InfoCircleOutlined,
   LogoutOutlined,
   SafetyCertificateOutlined,
@@ -63,6 +63,12 @@ function MainLayout() {
       permission: null,
     },
     {
+      key: "/doc-ingest",
+      icon: <InboxOutlined />,
+      label: "文档入库",
+      permission: null,
+    },
+    {
       key: "/users",
       icon: <UserOutlined />,
       label: "用户管理",
@@ -80,11 +86,6 @@ function MainLayout() {
       label: "系统设置",
       permission: { action: "manage", subject: "Settings" },
       children: [
-        {
-          key: "/database",
-          icon: <FileTextOutlined />,
-          label: "数据库管理",
-        },
         {
           key: "/settings",
           icon: <SettingOutlined />,
@@ -171,8 +172,31 @@ function MainLayout() {
 
   return (
     <ConfigProvider theme={getThemeConfig(isDarkMode)}>
-      <Layout style={{ minHeight: "100vh" }}>
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
+      {/*
+        外层 Layout 精准锁死视口尺寸（html/body/#root 也已经 overflow:hidden），
+        让浏览器级滚动条彻底消失，解决"拉到底继续拉 → 白屏 overscroll"。
+        Sider / Header / Content 各自按职责做内部滚动：
+          - Sider   : overflow-y:auto（菜单项超出时在左栏内滚）
+          - Header  : flexShrink=0（顶栏高度固定，不会被压缩）
+          - Content : flex:1 + minHeight:0 + overflow-y:auto（页面内容在这里滚）
+      */}
+      <Layout
+        style={{
+          height: "100vh",
+          width: "100vw",
+          overflow: "hidden",
+        }}
+      >
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          style={{
+            overflowY: "auto",
+            overflowX: "hidden",
+            overscrollBehavior: "contain",
+          }}
+        >
           <div
             style={{
               height: 64,
@@ -194,10 +218,18 @@ function MainLayout() {
             onClick={handleMenuClick}
           />
         </Sider>
-        <Layout>
+        <Layout
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            overflow: "hidden",
+          }}
+        >
           <Header
             style={{
-              padding: "0 24px",
+              flexShrink: 0,
+              padding: "0 16px",
               boxShadow: "0 1px 4px rgba(0, 0, 0, 0.1)",
               display: "flex",
               alignItems: "center",
@@ -223,9 +255,17 @@ function MainLayout() {
           </Header>
           <Content
             style={{
-              margin: "24px 16px",
-              padding: 24,
-              minHeight: 280,
+              /* 唯一的「页面外边距」来源：所有子页面（Outlet）不再重复写 padding/margin
+                 之前 Content margin 24/16 + padding 24 + 页面根 padding 16~24 → 三层留白吃掉大量宽度
+                 现在单边留白统一为 12px：左右各多约 28~40px 可用空间 */
+              flex: 1,
+              minHeight: 0,
+              overflowY: "auto",
+              overflowX: "hidden",
+              overscrollBehavior: "contain",
+              padding: 12,
+              margin: 0,
+              background: "transparent",
             }}
           >
             <Outlet />

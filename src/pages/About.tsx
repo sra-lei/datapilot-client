@@ -6,7 +6,7 @@ import { Card, Col, Row } from 'antd';
 
 function About() {
   return (
-    <div style={{ padding: 24 }}>
+    <div>
       <Row gutter={16}>
         <Col span={12}>
           <Card title="欢迎使用 知行 InsightForge 管理系统">

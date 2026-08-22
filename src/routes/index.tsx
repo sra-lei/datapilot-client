@@ -6,7 +6,7 @@ import { createBrowserRouter, Navigate, RouteObject } from "react-router-dom";
 import MainLayout from "../layouts/MainLayout";
 import About from "../pages/About";
 import Dashboard from "../pages/Dashboard";
-import DatabaseViewer from "../pages/DatabaseViewer";
+import DocIngest from "../pages/DocIngest";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
 import PermissionManagement from "../pages/Permissions";
@@ -17,10 +17,8 @@ import SystemSettings from "../pages/Settings";
 import UserManagement from "../pages/Users";
 import ProtectedRoute from "./ProtectedRoute";
 
-// 检查是否已登录
-const isAuthenticated = () => {
-  return localStorage.getItem("user") !== null;
-};
+// 注意：登录态校验已封装在 ProtectedRoute 组件内（读取 localStorage.user），
+// 此处不重复声明 isAuthenticated，避免 noUnusedLocals 报错。
 
 // 公共路由（未登录也可访问）
 const publicRoutes: RouteObject[] = [
@@ -57,12 +55,12 @@ const protectedRoutes: RouteObject[] = [
         element: <RagDashboard />,
       },
       {
-        path: "/about",
-        element: <About />,
+        path: "/doc-ingest",
+        element: <DocIngest />,
       },
       {
-        path: "/database",
-        element: <DatabaseViewer />,
+        path: "/about",
+        element: <About />,
       },
       {
         path: "/users",

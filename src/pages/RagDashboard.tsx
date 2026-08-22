@@ -1,6 +1,7 @@
 /**
  * RAG 评估看板
- * 展示评估集趋势、分类得分、用例详情
+ * 顶部：刷新 + CharterMate 评估趋势 / 分类得分 / 缓存统计 / 网关统计
+ * （文档上传入口已迁移到独立页面 /doc-ingest，避免本页面信息过载）
  */
 
 import { ReloadOutlined } from "@ant-design/icons";
@@ -350,7 +351,7 @@ function RagDashboard() {
 
   if (loading) {
     return (
-      <div style={{ padding: 24, textAlign: "center" }}>
+      <div style={{ textAlign: "center", padding: "48px 0" }}>
         <Spin size="large" />
       </div>
     );
@@ -358,14 +359,14 @@ function RagDashboard() {
 
   if (!data || (!history.length && !latest)) {
     return (
-      <div style={{ padding: 24 }}>
+      <div style={{ padding: "48px 0" }}>
         <Empty description="暂无评估数据，请先运行 python -m tests.test_chat" />
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div>
       <div
         style={{
           marginBottom: 16,
@@ -375,7 +376,11 @@ function RagDashboard() {
         }}
       >
         <h2 style={{ margin: 0 }}>RAG 评估看板</h2>
-        <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={handleRefresh}
+          loading={loading}
+        >
           刷新
         </Button>
       </div>

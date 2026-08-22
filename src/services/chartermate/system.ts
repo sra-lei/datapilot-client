@@ -10,7 +10,7 @@ import type { GatewayStats, ServiceHealth } from "./types";
 /**
  * 检查健康状态
  */
-export async function checkHealth(): Promise<ApiResponse<ServiceHealth>> {
+export async function checkChartermateHealth(): Promise<ApiResponse<ServiceHealth>> {
   return chartermateRequest<ServiceHealth>(CHARTERMATE_API.SYSTEM.HEALTH);
 }
 

@@ -5,8 +5,9 @@
 
 // 服务器类型枚举
 export enum ServerType {
-  CORE = 'core',           // Core Service（Node.js Server）
-  CHARTERMATE = 'chartermate',   // CharterMate Service（Python Server）
+  CORE = "core", // Core Service（Node.js Server）
+  CHARTERMATE = "chartermate", // CharterMate Service（Python Server）
+  DOC_KIT = "doc-kit", // Doc-Kit Service（文档解析/向量入库）
 }
 
 // 服务器配置接口
@@ -27,7 +28,7 @@ export interface AppConfig {
 
 // 从环境变量获取配置
 const getEnv = (key: string, defaultValue?: string): string => {
-  return import.meta.env[key] ?? defaultValue ?? '';
+  return import.meta.env[key] ?? defaultValue ?? "";
 };
 
 const getEnvNumber = (key: string, defaultValue: number): number => {
@@ -37,25 +38,30 @@ const getEnvNumber = (key: string, defaultValue: number): number => {
 
 const getEnvBoolean = (key: string, defaultValue: boolean): boolean => {
   const value = import.meta.env[key];
-  return value ? value === 'true' : defaultValue;
+  return value ? value === "true" : defaultValue;
 };
 
 // 应用配置实例
 export const config: AppConfig = {
-  title: getEnv('VITE_APP_TITLE', 'InsightForge Management'),
-  version: getEnv('VITE_APP_VERSION', '1.0.0'),
-  apiPrefix: getEnv('VITE_API_PREFIX', '/core'),
-  enableMock: getEnvBoolean('VITE_ENABLE_MOCK', false),
+  title: getEnv("VITE_APP_TITLE", "InsightForge Management"),
+  version: getEnv("VITE_APP_VERSION", "1.0.0"),
+  apiPrefix: getEnv("VITE_API_PREFIX", "/core"),
+  enableMock: getEnvBoolean("VITE_ENABLE_MOCK", false),
   servers: {
     [ServerType.CORE]: {
-      host: getEnv('VITE_SERVER_CORE_HOST', 'localhost'),
-      port: getEnvNumber('VITE_SERVER_CORE_PORT', 3002),
-      url: getEnv('VITE_SERVER_CORE_URL', 'http://localhost:3002'),
+      host: getEnv("VITE_SERVER_CORE_HOST", "localhost"),
+      port: getEnvNumber("VITE_SERVER_CORE_PORT", 3002),
+      url: getEnv("VITE_SERVER_CORE_URL", "http://localhost:3002"),
     },
     [ServerType.CHARTERMATE]: {
-      host: getEnv('VITE_SERVER_CHARTERMATE_HOST', 'localhost'),
-      port: getEnvNumber('VITE_SERVER_CHARTERMATE_PORT', 8000),
-      url: getEnv('VITE_SERVER_CHARTERMATE_URL', 'http://localhost:8000'),
+      host: getEnv("VITE_SERVER_CHARTERMATE_HOST", "localhost"),
+      port: getEnvNumber("VITE_SERVER_CHARTERMATE_PORT", 8000),
+      url: getEnv("VITE_SERVER_CHARTERMATE_URL", "http://localhost:8000"),
+    },
+    [ServerType.DOC_KIT]: {
+      host: getEnv("VITE_SERVER_DOC_KIT_HOST", "localhost"),
+      port: getEnvNumber("VITE_SERVER_DOC_KIT_PORT", 8100),
+      url: getEnv("VITE_SERVER_DOC_KIT_URL", "http://localhost:8100"),
     },
   },
 };
@@ -66,7 +72,10 @@ export const getServerUrl = (serverType: ServerType): string => {
 };
 
 // 获取服务器完整 API 路径
-export const getServerApiUrl = (serverType: ServerType, path: string): string => {
+export const getServerApiUrl = (
+  serverType: ServerType,
+  path: string,
+): string => {
   const serverUrl = config.servers[serverType].url;
   return `${serverUrl}${path}`;
 };

@@ -19,6 +19,13 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path,
       },
+      // Doc-Kit 服务代理（Python FastAPI）
+      // 前端用同源路径 /doc-kit/*，Vite 转发到 doc-kit 开发端口 8100
+      '/doc-kit': {
+        target: 'http://127.0.0.1:8100',
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
     },
   },
   resolve: {

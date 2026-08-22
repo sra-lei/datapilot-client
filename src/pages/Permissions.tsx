@@ -36,6 +36,7 @@ import {
   grantPermission,
   revokePermission,
 } from "../services/core";
+import { repairLatin1Mojibake } from "../utils/textRepair";
 
 function PermissionManagement() {
   const [loading, setLoading] = useState(false);
@@ -53,7 +54,13 @@ function PermissionManagement() {
     try {
       const response = await getAllPermissions();
       if (response.success) {
-        setPermissions(response.data || []);
+        // 渲染层兜底：后端修复若因连接未重置未生效，前端再修一次（Latin-1 mojibake 无损）
+        setPermissions(
+          (response.data || []).map((p) => ({
+            ...p,
+            description: repairLatin1Mojibake(p.description),
+          })),
+        );
       } else {
         message.error(response.message || response.msg);
       }
@@ -70,7 +77,12 @@ function PermissionManagement() {
     try {
       const response = await getAllRoles();
       if (response.success) {
-        setRoles(response.data || []);
+        setRoles(
+          (response.data || []).map((r) => ({
+            ...r,
+            description: repairLatin1Mojibake(r.description),
+          })),
+        );
       } else {
         message.error(response.message || response.msg);
       }
@@ -86,8 +98,16 @@ function PermissionManagement() {
     setLoading(true);
     try {
       const response = await getRoleWithPermissions(roleId);
-      if (response.success) {
-        setSelectedRole(response.data || null);
+      if (response.success && response.data) {
+        const raw = response.data;
+        setSelectedRole({
+          ...raw,
+          description: repairLatin1Mojibake(raw.description),
+          permissions: (raw.permissions || []).map((p) => ({
+            ...p,
+            description: repairLatin1Mojibake(p.description),
+          })),
+        });
       } else {
         message.error(response.message || response.msg);
       }

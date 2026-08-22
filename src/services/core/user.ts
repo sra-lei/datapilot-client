@@ -78,8 +78,10 @@ export async function updateUserStatus(
 }
 
 /**
- * 检查健康状态
+ * 检查 Core 服务健康状态（命名加 Core 后缀，避免与 chartermate checkHealth 冲突）
  */
-export async function checkHealth(): Promise<ApiResponse<{ status: string }>> {
+export async function checkCoreHealth(): Promise<
+  ApiResponse<{ status: string }>
+> {
   return coreRequest(CORE_API.SYSTEM.HEALTH);
 }
