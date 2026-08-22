@@ -55,6 +55,11 @@ export interface DocKitUploadPanelRef {
   readonly healthDown: boolean;
 }
 
+/** 任务完成（成功/失败/超时）时的回调，外层用于刷新列表 */
+export type DocKitUploadPanelProps = {
+  onTaskComplete?: (status: "success" | "error" | "timeout") => void;
+};
+
 // ---- 异步 ingest 任务阶段参数 ----
 const POLL_INTERVAL_MS = 2000;
 const POLL_MAX_TIMES = 60; // 2 分钟兜底
@@ -81,9 +86,8 @@ function resolveCurrentStep(
   return "storing";
 }
 
-const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef>(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  function DocKitUploadPanel(_props, ref) {
+const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProps>(
+  function DocKitUploadPanel({ onTaskComplete }, ref) {
     const [healthLoading, setHealthLoading] = useState(true);
     const [health, setHealth] = useState<DocKitHealthData | null>(null);
     const [healthDown, setHealthDown] = useState<boolean>(false);
@@ -92,6 +96,8 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef>(
     const [stepError, setStepError] = useState<string | null>(null);
     // 去重记录：fileKey -> task_id / 'in_progress'
     const submittedRef = useRef<Map<string, string>>(new Map());
+    // 当前任务的 fileKey（轮询回调里需要用它清理 submittedRef，避免用 taskId 误删）
+    const currentFileKeyRef = useRef<string | null>(null);
     const pollTimerRef = useRef<number | null>(null);
     const pollCountRef = useRef(0);
 
@@ -141,6 +147,15 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef>(
       }
     };
 
+    // 统一清理：用 fileKey 删 submittedRef，避免用 taskId 误删（Map key 是 fileKey 不是 taskId）
+    const cleanupSubmitted = () => {
+      const fk = currentFileKeyRef.current;
+      if (fk) {
+        submittedRef.current.delete(fk);
+        currentFileKeyRef.current = null;
+      }
+    };
+
     const startPoll = (taskId: string) => {
       stopPoll();
       pollCountRef.current = 0;
@@ -156,8 +171,9 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef>(
               message.success(
                 `入库完成：原文 ${d.chunks_count ?? 0} 段，摘要 ${d.summary_count ?? 0} 段`,
               );
-              submittedRef.current.delete(taskId);
+              cleanupSubmitted();
               setSubmitting(false);
+              onTaskComplete?.("success");
               return;
             }
             if (d.status === "error") {
@@ -165,22 +181,25 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef>(
               const err = d.error ?? "未知错误";
               setStepError(err);
               message.error(`入库失败：${err}`);
-              submittedRef.current.delete(taskId);
+              cleanupSubmitted();
               setSubmitting(false);
+              onTaskComplete?.("error");
               return;
             }
             if (pollCountRef.current >= POLL_MAX_TIMES) {
               stopPoll();
               setStepError("任务超时（超过 2 分钟仍在运行）");
               message.warning("任务仍在后台处理，稍后可在列表页查看结果");
+              cleanupSubmitted();
               setSubmitting(false);
+              onTaskComplete?.("timeout");
               return;
             }
           } else if (r.status === 404 || r.code === 404) {
             stopPoll();
             setStepError(r.msg ?? "任务不存在");
             message.error(r.msg ?? "任务不存在");
-            submittedRef.current.delete(taskId);
+            cleanupSubmitted();
             setSubmitting(false);
             return;
           } else {
@@ -261,6 +280,7 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef>(
         const taskId = String(data.task_id ?? "");
         if (!taskId) throw new Error("服务未返回 task_id");
         submittedRef.current.set(key, taskId);
+        currentFileKeyRef.current = key; // 保存当前 fileKey 供轮询回调清理用
         message.info(`任务已提交（${taskId}），正在处理...`);
         setStatusData({
           task_id: taskId,
@@ -271,6 +291,7 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef>(
         options.onSuccess?.(data);
       } catch (err) {
         submittedRef.current.delete(key);
+        currentFileKeyRef.current = null;
         const msg = err instanceof Error ? err.message : "上传失败";
         setStepError(msg);
         setSubmitting(false);

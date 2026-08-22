@@ -316,7 +316,12 @@ export default function DocIngest() {
                 重新探活
               </Button>
             ),
-            children: <DocKitUploadPanel ref={uploadPanelRef} />,
+            children: (
+              <DocKitUploadPanel
+                ref={uploadPanelRef}
+                onTaskComplete={() => reload(1)}
+              />
+            ),
           },
         ]}
       />
