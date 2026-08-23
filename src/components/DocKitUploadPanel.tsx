@@ -21,7 +21,6 @@ import {
   Row,
   Space,
   Spin,
-  Steps,
   Tag,
   Upload,
   message,
@@ -66,6 +65,15 @@ const POLL_INTERVAL_MS = 30000; // 状态轮询间隔 30s（避免 2s 一次过�
 const POLL_MAX_TIMES = 60; // 30 分钟兜底（60 × 30s）；超时后可在列表页用"核对"确认最终结果
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ACCEPT_EXTS = [".pdf"];
+
+/** 步骤条顺序（自定义渲染：横排，每项文字在上、数字圆点在下） */
+const STEP_ORDER: { key: IngestStepKey; label: string }[] = [
+  { key: "parsing", label: INGEST_STEP_LABELS.parsing },
+  { key: "chunking_embedding", label: INGEST_STEP_LABELS.chunking_embedding },
+  { key: "summarizing", label: INGEST_STEP_LABELS.summarizing },
+  { key: "storing", label: INGEST_STEP_LABELS.storing },
+  { key: "done", label: INGEST_STEP_LABELS.done },
+];
 
 /**
  * 根据任务状态 + 轮询 tick 推断 Steps 阶段
@@ -312,12 +320,29 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
       if (currentStepKey === "storing") return 3;
       return 4;
     })();
-    const stepStatus: Parameters<typeof Steps>[0]["status"] =
+    const stepStatus: "process" | "finish" | "error" =
       currentStepKey === "error"
         ? "error"
         : currentStepKey === "done"
           ? "finish"
           : "process";
+
+    // 自定义步骤条状态：done（已完成）/ active（进行中）/ error（失败）/ wait（待执行）
+    const stepState = (
+      idx: number,
+    ): "done" | "active" | "error" | "wait" => {
+      if (stepStatus === "finish") return "done";
+      if (stepStatus === "error") {
+        return idx === currentIndex
+          ? "error"
+          : idx < currentIndex
+            ? "done"
+            : "wait";
+      }
+      if (idx < currentIndex) return "done";
+      if (idx === currentIndex) return "active";
+      return "wait";
+    };
 
     const draggerProps: UploadProps = {
       name: "file",
@@ -419,26 +444,111 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
             )}
           </Col>
 
-          {/* 右列：Steps 进度条（横排，容器高度与左列一致，内容垂直居中） */}
+          {/* 右列：自定义步骤条（横排；文字在上、数字圆点在下；容器与左列等高，垂直居中） */}
           <Col
             xs={24}
             md={14}
             lg={15}
             style={{ display: "flex", alignItems: "center" }}
           >
-            <Steps
-              current={currentIndex}
-              status={stepStatus}
-              size="small"
-              style={{ width: "100%" }}
-              items={[
-                { title: INGEST_STEP_LABELS.parsing },
-                { title: INGEST_STEP_LABELS.chunking_embedding },
-                { title: INGEST_STEP_LABELS.summarizing },
-                { title: INGEST_STEP_LABELS.storing },
-                { title: INGEST_STEP_LABELS.done },
-              ]}
-            />
+            <div style={{ width: "100%" }}>
+              {/* 第一行：步骤文字（与下方圆点槽位等宽，保证上下对齐） */}
+              <div style={{ display: "flex" }}>
+                {STEP_ORDER.map((s, idx) => {
+                  const st = stepState(idx);
+                  return (
+                    <div
+                      key={s.key}
+                      style={{
+                        flex: 1,
+                        textAlign: "center",
+                        fontSize: 12,
+                        color:
+                          st === "active" || st === "done"
+                            ? "#1677ff"
+                            : st === "error"
+                              ? "#ff4d4f"
+                              : "rgba(0,0,0,0.45)",
+                        fontWeight:
+                          st === "active" || st === "error" ? 600 : 400,
+                      }}
+                    >
+                      {s.label}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* 第二行：连接线 + 数字圆点 */}
+              <div
+                style={{
+                  position: "relative",
+                  display: "flex",
+                  marginTop: 8,
+                }}
+              >
+                {/* 连接线：从首个圆点中心到末个圆点中心，按完成态分段着色 */}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 11,
+                    left: "10%",
+                    right: "10%",
+                    height: 2,
+                    display: "flex",
+                  }}
+                >
+                  {STEP_ORDER.slice(0, -1).map((s, i) => (
+                    <div
+                      key={s.key}
+                      style={{
+                        flex: 1,
+                        background:
+                          stepState(i) === "done" ? "#1677ff" : "#d9d9d9",
+                      }}
+                    />
+                  ))}
+                </div>
+                {STEP_ORDER.map((s, idx) => {
+                  const st = stepState(idx);
+                  const color =
+                    st === "error"
+                      ? "#ff4d4f"
+                      : st === "wait"
+                        ? "#d9d9d9"
+                        : "#1677ff";
+                  return (
+                    <div
+                      key={s.key}
+                      style={{
+                        flex: 1,
+                        display: "flex",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          lineHeight: 1,
+                          color:
+                            st === "wait" ? "rgba(0,0,0,0.45)" : "#fff",
+                          background:
+                            st === "wait" ? "rgba(0,0,0,0.04)" : color,
+                          border: `1px solid ${color}`,
+                        }}
+                      >
+                        {idx + 1}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </Col>
         </Row>
       </Card>
