@@ -261,8 +261,8 @@ function MilvusCollectionBlock({
     );
   }
   return (
-    <div style={{ marginBottom: 16 }}>
-      <Space style={{ marginBottom: 4 }}>
+    <div>
+      <Space style={{ marginBottom: 8 }}>
         <Text strong>{label}</Text>
         <Tag color={stat.exists ? "success" : "error"}>
           {stat.exists ? "存在" : "缺失"}
@@ -272,7 +272,11 @@ function MilvusCollectionBlock({
         )}
       </Space>
       {stat.exists && (
-        <Descriptions {...descriptionsConfig}>
+        <Descriptions
+          size="small"
+          column={2}
+          labelStyle={{ width: 70, color: "#888" }}
+        >
           <Descriptions.Item label="向量维度">
             {stat.dim ?? "--"}
           </Descriptions.Item>
@@ -307,7 +311,7 @@ function MilvusMonitorPanel({
           <DatabaseOutlined /> Milvus 监控
         </>
       }
-      style={cardStyle}
+      style={{ height: "100%" }}
       extra={
         <Button
           size="small"
@@ -331,15 +335,21 @@ function MilvusMonitorPanel({
             {data?.server_version || "--"}
           </Descriptions.Item>
         </Descriptions>
-        <Divider style={{ margin: "12px 0" }} />
-        <MilvusCollectionBlock
-          label="原文集合"
-          stat={data?.collections?.docs}
-        />
-        <MilvusCollectionBlock
-          label="摘要集合"
-          stat={data?.collections?.summaries}
-        />
+        <Divider style={{ margin: "8px 0" }} />
+        <Row gutter={16}>
+          <Col span={12}>
+            <MilvusCollectionBlock
+              label="原文集合"
+              stat={data?.collections?.docs}
+            />
+          </Col>
+          <Col span={12}>
+            <MilvusCollectionBlock
+              label="摘要集合"
+              stat={data?.collections?.summaries}
+            />
+          </Col>
+        </Row>
       </Spin>
     </Card>
   );
