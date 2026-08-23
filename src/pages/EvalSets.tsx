@@ -1,10 +1,11 @@
 /**
  * 评估集管理页面
- * 主视图：评估集列表；从视图：用例管理 Drawer（批量导入 / 导出 / 用例 CRUD）
+ * 主视图：评估集列表；从视图：用例管理（选中评估集后展示在列表下方，批量导入 / 导出 / 用例 CRUD）
  */
 
 import {
   AuditOutlined,
+  CloseOutlined,
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
@@ -20,7 +21,6 @@ import {
   Alert,
   Button,
   Card,
-  Drawer,
   Form,
   Input,
   InputNumber,
@@ -107,8 +107,7 @@ function EvalSets() {
   const [ loading, setLoading ] = useState(false);
   const [ sets, setSets ] = useState<EvalSetListItem[]>([]);
 
-  // 用例 Drawer
-  const [ drawerOpen, setDrawerOpen ] = useState(false);
+  // 用例管理（选中评估集后展示在列表下方）
   const [ detail, setDetail ] = useState<EvalSetDetail | null>(null);
   const [ casesLoading, setCasesLoading ] = useState(false);
 
@@ -121,7 +120,7 @@ function EvalSets() {
   const [ importModalOpen, setImportModalOpen ] = useState(false);
   const [ importForm ] = Form.useForm();
 
-  // 批量导入（Drawer 内）
+  // 批量导入（用例管理卡片内）
   const [ importCasesOpen, setImportCasesOpen ] = useState(false);
   const [ importCasesText, setImportCasesText ] = useState('');
   const [ importResult, setImportResult ] = useState<EvalCaseImportResult | null>(
@@ -161,8 +160,7 @@ function EvalSets() {
     }
   };
 
-  const openDrawer = async(setItem: EvalSetListItem) => {
-    setDrawerOpen(true);
+  const openCases = async(setItem: EvalSetListItem) => {
     setCasesLoading(true);
     try {
       const response = await getEvalSet(setItem.id);
@@ -265,8 +263,7 @@ function EvalSets() {
     const result = await deleteEvalSet(setItem.id);
     if (result.success) {
       message.success('评估集已删除（软删除）');
-      if (drawerOpen && detail?.set.id === setItem.id) {
-        setDrawerOpen(false);
+      if (detail?.set.id === setItem.id) {
         setDetail(null);
       }
       loadSets();
@@ -298,7 +295,7 @@ function EvalSets() {
         setImportModalOpen(false);
         importForm.resetFields();
         loadSets();
-        openDrawer({
+        openCases({
           ...response.data.set,
           case_count: imp.inserted,
           category_stats: {},
@@ -468,7 +465,7 @@ function EvalSets() {
       dataIndex: 'name',
       key: 'name',
       render: (text: string, record: EvalSetListItem) => (
-        <Button type="link" style={{ padding: 0 }} onClick={() => openDrawer(record)}>
+        <Button type="link" style={{ padding: 0 }} onClick={() => openCases(record)}>
           {text}
         </Button>
       ),
@@ -518,7 +515,7 @@ function EvalSets() {
             type="link"
             size="small"
             icon={<EyeOutlined />}
-            onClick={() => openDrawer(record)}
+            onClick={() => openCases(record)}
           >
             用例
           </Button>
@@ -725,6 +722,64 @@ function EvalSets() {
         />
       </Card>
 
+      {/* 用例管理（选中评估集后展示在列表下方） */}
+      {detail && (
+        <Card
+          title={
+            <>
+              <AuditOutlined /> {detail.set.name} - 用例管理
+            </>
+          }
+          extra={
+            <Space>
+              {canWrite && (
+                <Button icon={<PlusOutlined />} onClick={() => openCaseModal()}>
+                  新建用例
+                </Button>
+              )}
+              {canWrite && (
+                <Button
+                  icon={<UploadOutlined />}
+                  onClick={() => {
+                    setImportCasesOpen(true);
+                    setImportCasesText('');
+                    setImportResult(null);
+                  }}
+                >
+                  批量导入
+                </Button>
+              )}
+              <Button icon={<DownloadOutlined />} onClick={handleExport}>
+                导出
+              </Button>
+              <Button icon={<CloseOutlined />} onClick={() => setDetail(null)}>
+                关闭
+              </Button>
+            </Space>
+          }
+        >
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <div>
+              <Text type="secondary">
+                文档范围：{detail.set.doc_scope || '-'}
+              </Text>
+              <span style={{ marginLeft: 16 }}>状态：{statusTag(detail.set.status)}</span>
+              <span style={{ marginLeft: 16 }}>用例数：{detail.cases.length}</span>
+              <span style={{ marginLeft: 16 }}>
+                <Text type="secondary">导出仅含「正常」用例，禁用项评测时跳过</Text>
+              </span>
+            </div>
+            <Table
+              rowKey="id"
+              loading={casesLoading}
+              dataSource={detail.cases}
+              columns={caseColumns}
+              pagination={{ pageSize: 10 }}
+            />
+          </Space>
+        </Card>
+      )}
+
       {/* 新建 / 编辑评估集 */}
       <Modal
         title={editingSet ? `编辑评估集：${editingSet.name}` : '新建评估集'}
@@ -793,63 +848,6 @@ function EvalSets() {
           </Form.Item>
         </Form>
       </Modal>
-
-      {/* 用例管理 Drawer */}
-      <Drawer
-        title={detail ? `${detail.set.name} - 用例管理` : '用例管理'}
-        width={860}
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        extra={
-          <Space>
-            {canWrite && (
-              <Button
-                icon={<PlusOutlined />}
-                onClick={() => openCaseModal()}
-              >
-                新建用例
-              </Button>
-            )}
-            {canWrite && (
-              <Button
-                icon={<UploadOutlined />}
-                onClick={() => {
-                  setImportCasesOpen(true);
-                  setImportCasesText('');
-                  setImportResult(null);
-                }}
-              >
-                批量导入
-              </Button>
-            )}
-            <Button icon={<DownloadOutlined />} onClick={handleExport}>
-              导出
-            </Button>
-          </Space>
-        }
-      >
-        {detail && (
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
-            <div>
-              <Text type="secondary">
-                文档范围：{detail.set.doc_scope || '-'}
-              </Text>
-              <span style={{ marginLeft: 16 }}>状态：{statusTag(detail.set.status)}</span>
-              <span style={{ marginLeft: 16 }}>用例数：{detail.cases.length}</span>
-              <span style={{ marginLeft: 16 }}>
-                <Text type="secondary">导出仅含「正常」用例，禁用项评测时跳过</Text>
-              </span>
-            </div>
-            <Table
-              rowKey="id"
-              loading={casesLoading}
-              dataSource={detail.cases}
-              columns={caseColumns}
-              pagination={{ pageSize: 10 }}
-            />
-          </Space>
-        )}
-      </Drawer>
 
       {/* 批量导入用例 */}
       <Modal
