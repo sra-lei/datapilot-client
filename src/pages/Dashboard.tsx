@@ -606,14 +606,14 @@ function Dashboard() {
       </Row>
 
       <Row gutter={16}>
-        <Col xs={24} lg={10} style={{ marginBottom: 16 }}>
+        <Col xs={24} lg={12} style={{ marginBottom: 16 }}>
           <MilvusMonitorPanel
             data={milvusData}
             loading={milvusLoading}
             onRefresh={() => void refreshMilvus()}
           />
         </Col>
-        <Col xs={24} lg={14}>
+        <Col xs={24} lg={12}>
           <DatabaseViewerPanel />
         </Col>
       </Row>
