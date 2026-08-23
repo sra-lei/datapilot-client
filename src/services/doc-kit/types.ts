@@ -115,8 +115,8 @@ export const INGEST_STEP_LABELS: Record<IngestStepKey, string> = {
   chunking_embedding: "智能分块与向量化",
   // summarizing 在后端无独立 signal，前端基于 tick 做轻量过渡（4s 左右）；
   // 文案附加 "(或入库中)" 避免用户误以为入库慢。
-  summarizing: "生成章节摘要（或入库中）",
-  storing: "入库 Milvus 向量库",
+  summarizing: "生成章节摘要",
+  storing: "入向量库",
   done: "入库完成",
   error: "入库失败",
 } as const;

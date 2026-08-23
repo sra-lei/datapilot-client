@@ -362,9 +362,6 @@ export default function DocIngest() {
               <Space wrap size={12}>
                 <UnorderedListOutlined />
                 <strong>文档入库（doc-kit）</strong>
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  上传 PDF 后自动解析、分块、向量化、摘要生成并入库 Milvus
-                </Text>
                 {(() => {
                   const stats = uploadPanelRef.current?.health?.stats;
                   const down = uploadPanelRef.current?.healthDown ?? false;
