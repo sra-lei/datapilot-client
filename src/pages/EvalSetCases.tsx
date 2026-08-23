@@ -407,18 +407,6 @@ function EvalSetCases() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 12 }} align="center">
-        <Button
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/eval-sets')}
-        >
-          返回
-        </Button>
-        <Text strong style={{ fontSize: 16 }}>
-          {detail ? detail.set.name : '用例管理'}
-        </Text>
-      </Space>
-
       {notFound ? (
         <Card>
           <Text type="secondary">评估集不存在或已被删除</Text>
@@ -426,9 +414,16 @@ function EvalSetCases() {
       ) : (
         <Card
           title={
-            <>
-              {detail?.set.name ?? '用例管理'} - 用例管理
-            </>
+            <Space>
+              <Button
+                type="text"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate('/eval-sets')}
+              >
+                返回
+              </Button>
+              {detail ? `${detail.set.name} - 用例管理` : '用例管理'}
+            </Space>
           }
           extra={
             <Space>
