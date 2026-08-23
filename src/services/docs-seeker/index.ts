@@ -7,3 +7,4 @@ export * from "./milvus";
 export * from "./stats";
 export * from "./system";
 export * from "./types";
+export * from "./usage";

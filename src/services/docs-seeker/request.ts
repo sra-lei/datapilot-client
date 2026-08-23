@@ -11,18 +11,40 @@ interface DocsSeekerRequestConfig {
   timeout?: number;
 }
 
+/**
+ * 从本地存储读取当前登录用户 id（与 utils/request.ts 的 coreRequest 逻辑一致），
+ * 附带在 X-User-ID 头中，供 docs-seeker 做 RAG 使用统计。
+ */
+function getCurrentUserId(): string | null {
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw) as { id?: unknown };
+      if (parsed.id != null) return String(parsed.id);
+    }
+  } catch {
+    // 本地存储解析失败时忽略，不附带该头
+  }
+  return null;
+}
+
 export async function docsSeekerFetch<T = unknown>(
   path: string,
   config: DocsSeekerRequestConfig = {},
 ): Promise<T> {
   const { method = "GET", body, timeout = 30000 } = config;
 
+  const headers: Record<string, string> = {};
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  const userId = getCurrentUserId();
+  if (userId) headers["X-User-ID"] = userId;
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeout);
   try {
     const response = await fetch(path, {
       method,
-      headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
+      headers,
       body: body !== undefined ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     });

@@ -80,3 +80,19 @@ export interface MilvusStats {
   server_version: string;
   collections: Record<string, MilvusCollectionStats>;
 }
+
+// ============ /v1/usage/stats RAG 使用统计 ============
+
+export interface UsageUserStat {
+  user_id: string;
+  calls: number;
+  success_rate: string;
+}
+
+export interface UsageStats {
+  total_calls: number;
+  success_calls: number;
+  success_rate: string;
+  active_users: number;
+  users: UsageUserStat[];
+}

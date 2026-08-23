@@ -7,11 +7,7 @@
  *   - 响应式栅格：xs=24 md=8
  */
 
-import {
-  DatabaseOutlined,
-  InfoCircleOutlined,
-  ReloadOutlined,
-} from "@ant-design/icons";
+import { DatabaseOutlined, ReloadOutlined } from "@ant-design/icons";
 import {
   Button,
   Card,
@@ -21,24 +17,28 @@ import {
   Row,
   Space,
   Spin,
+  Statistic,
+  Table,
   Tag,
   Typography,
 } from "antd";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import type { DatabaseStats } from "../services/core";
-import { checkCoreHealth, getDatabaseStats } from "../services/core";
+import { checkCoreHealth } from "../services/core";
 import type { DocKitHealthData } from "../services/doc-kit";
 import { getDocKitHealth } from "../services/doc-kit";
 import {
   checkDocsSeekerHealth,
   getCacheStats,
   getMilvusStats,
+  getRagUsageStats,
 } from "../services/docs-seeker";
 import type {
   CacheStats,
   MilvusCollectionStats,
   MilvusStats,
+  UsageStats,
+  UsageUserStat,
 } from "../services/docs-seeker";
 
 const { Text } = Typography;
@@ -88,59 +88,88 @@ function ServiceStatusTag({
 const fmt = (d: Date | null): string =>
   d ? d.toLocaleTimeString("zh-CN", { hour12: false }) : "--";
 
-// ======================================================================
-//  数据库管理面板（原独立的 /database 页面；现在内联进仪表盘正文）
-//  保留全部原逻辑：配置统计、表列表卡片、表数据预览、SQL 查询 Modal
-// ======================================================================
-function DatabaseViewerPanel() {
-  const [stats, setStats] = useState<DatabaseStats | null>(null);
+// ===============================================================
+//  RAG 使用统计面板（按用户维度：次数 / 成功率 / 活跃用户 / Top）
+// ===============================================================
+function RagUsagePanel({
+  data,
+  loading,
+  onRefresh,
+}: {
+  data: UsageStats | null;
+  loading: boolean;
+  onRefresh: () => void;
+}) {
+  const successRate = parseFloat(data?.success_rate || "0") || 0;
 
-  // 加载统计信息
-  const loadStats = async () => {
-    try {
-      const result = await getDatabaseStats();
-      if (result.success) {
-        setStats(result.data || null);
-      }
-    } catch (error) {
-      console.error("加载统计信息失败", error);
-    }
-  };
-
-  useEffect(() => {
-    void loadStats();
-  }, []);
+  const columns = [
+    { title: "用户", dataIndex: "user_id", key: "user_id" },
+    {
+      title: "调用次数",
+      dataIndex: "calls",
+      key: "calls",
+      render: (v: number) => (
+        <span style={{ fontWeight: 600, color: "#1890ff" }}>{v}</span>
+      ),
+      sorter: (a: UsageUserStat, b: UsageUserStat) => a.calls - b.calls,
+    },
+    {
+      title: "成功率",
+      dataIndex: "success_rate",
+      key: "success_rate",
+      render: (v: string) => {
+        const pct = parseFloat(v) || 0;
+        const color = pct >= 90 ? "#52c41a" : pct >= 70 ? "#faad14" : "#ff4d4f";
+        return <span style={{ color, fontWeight: 600 }}>{v}</span>;
+      },
+    },
+  ];
 
   return (
-    <div style={{ width: "100%" }}>
-      <Space direction="vertical" size="large" style={{ width: "100%" }}>
-        {/* 数据库配置和统计信息 */}
-        {stats && (
-          <Card
-            title={
-              <>
-                <InfoCircleOutlined /> 数据库配置与统计
-              </>
-            }
-          >
-            <Descriptions column={4}>
-              <Descriptions.Item label="数据库类型">
-                <Tag color="purple">SQLite</Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="数据库路径">
-                <Text code copyable>
-                  {stats.dbFilePath}
-                </Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="表数量">
-                <Tag color="blue">{stats.tableCount}</Tag>
-              </Descriptions.Item>
-            </Descriptions>
-            <Divider />
-          </Card>
-        )}
-      </Space>
-    </div>
+    <Card
+      title={
+        <>
+          <DatabaseOutlined /> RAG 使用统计
+        </>
+      }
+      style={{ height: "100%" }}
+      extra={
+        <Button
+          size="small"
+          icon={<ReloadOutlined />}
+          onClick={onRefresh}
+          loading={loading}
+        >
+          刷新
+        </Button>
+      }
+    >
+      <Spin spinning={loading}>
+        <Row gutter={16} style={{ marginBottom: 16 }}>
+          <Col span={8}>
+            <Statistic title="总调用次数" value={data?.total_calls ?? 0} />
+          </Col>
+          <Col span={8}>
+            <Statistic
+              title="成功率"
+              value={data?.success_rate ?? "0.0%"}
+              valueStyle={{ color: successRate >= 90 ? "#52c41a" : "#faad14" }}
+            />
+          </Col>
+          <Col span={8}>
+            <Statistic title="活跃用户" value={data?.active_users ?? 0} />
+          </Col>
+        </Row>
+        <Table
+          rowKey="user_id"
+          size="small"
+          columns={columns}
+          dataSource={data?.users ?? []}
+          pagination={false}
+          locale={{ emptyText: "暂无使用数据" }}
+        />
+      </Spin>
+    </Card>
   );
 }
 
@@ -385,6 +414,10 @@ function Dashboard() {
   const [milvusData, setMilvusData] = useState<MilvusStats | null>(null);
   const [milvusLoading, setMilvusLoading] = useState(false);
 
+  // ------- RAG 使用统计 -------
+  const [usageData, setUsageData] = useState<UsageStats | null>(null);
+  const [usageLoading, setUsageLoading] = useState(false);
+
   // ------- 刷新函数 -------
   const refreshCore = async () => {
     setCoreChecking(true);
@@ -447,11 +480,24 @@ function Dashboard() {
     }
   };
 
+  const refreshUsage = async () => {
+    setUsageLoading(true);
+    try {
+      const r = await getRagUsageStats();
+      if (r.success && r.data) setUsageData(r.data);
+    } catch {
+      /* ignore */
+    } finally {
+      setUsageLoading(false);
+    }
+  };
+
   useEffect(() => {
     void refreshCore();
     void refreshChartermate();
     void refreshDockit();
     void refreshMilvus();
+    void refreshUsage();
   }, []);
 
   // ===============================================================
@@ -615,7 +661,11 @@ function Dashboard() {
           />
         </Col>
         <Col xs={24} lg={12}>
-          <DatabaseViewerPanel />
+          <RagUsagePanel
+            data={usageData}
+            loading={usageLoading}
+            onRefresh={() => void refreshUsage()}
+          />
         </Col>
       </Row>
     </div>
