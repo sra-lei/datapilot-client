@@ -18,13 +18,13 @@ import {
 } from "antd";
 import ReactECharts from "echarts-for-react";
 import { useEffect, useMemo, useState } from "react";
-import type { CategoryStat, EvalStatsData } from "../services/chartermate";
+import type { CategoryStat, EvalStatsData } from "../services/core";
+import { getEvalStats } from "../services/core";
 import {
   getCacheStats,
-  getEvalStats,
   getGatewayStats,
   getSemanticCacheStats,
-} from "../services/chartermate";
+} from "../services/docs-seeker";
 
 // 分类颜色配置
 const CATEGORY_COLORS: Record<string, string> = {
@@ -486,7 +486,9 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span style={{ color: "#888", fontSize: 12 }}>缓存:</span>
+                      <span style={{ color: "#888", fontSize: 12 }}>
+                        累计请求:
+                      </span>
                       <span
                         style={{
                           fontSize: 14,
@@ -494,7 +496,7 @@ function RagDashboard() {
                           color: "#1890ff",
                         }}
                       >
-                        {cacheData.size}
+                        {cacheData.hits + cacheData.misses}
                       </span>
                     </div>
                   </div>

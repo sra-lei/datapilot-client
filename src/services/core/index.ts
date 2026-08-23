@@ -8,3 +8,4 @@ export * from './user';
 export * from './permission';
 export * from './database';
 export * from './evalSet';
+export * from './eval';

@@ -51,10 +51,10 @@ client/
 │   │   │   ├── user.ts      # 用户服务
 │   │   │   ├── permission.ts # 权限服务
 │   │   │   └── database.ts  # 数据库服务
-│   │   └── chartermate/     # CharterMate Service（Python 后端）
-│   │       ├── chat.ts      # 对话服务
-│   │       ├── cache.ts     # 缓存服务
-│   │       └── system.ts    # 系统服务
+│   │   └── docs-seeker/     # Docs-Seeker Service（Python FastAPI，RAG 检索问答）
+│   │       ├── chat.ts      # 对话服务（一次性返回）
+│   │       ├── stats.ts     # 运行指标（缓存/网关统计）
+│   │       └── system.ts    # 系统服务（健康检查）
 │   ├── types/               # 全局类型定义
 │   ├── utils/               # 工具函数
 │   │   └── request.ts       # HTTP 请求封装
@@ -122,16 +122,18 @@ npm run lint:fix
 | 路径前缀 | 目标服务 | 说明 |
 |----------|---------|------|
 | `/core` | Node.js Core Service | 用户、权限、数据库等核心服务 |
-| `/api/v1` | Python Business Service | RAG、对话、缓存等业务服务 |
+| `/v1` | Python Docs-Seeker Service | RAG 检索问答（chat / retrieve / health / stats） |
+| `/api/v1` | 旧 Python Business Service | 兼容保留（旧 CharterMate） |
 
 代理配置位于 `vite.config.ts`，服务器地址通过 `.env.development` 中的环境变量管理。
 
 ## 服务架构
 
-Services 层按业务系统分为两个子模块：
+Services 层按业务系统分为三个子模块：
 
-- **Core Service**（`src/services/core/`）：对接 Node.js 后端，负责用户认证、权限管理、数据库操作等核心功能
-- **CharterMate Service**（`src/services/chartermate/`）：对接 Python 后端，负责 RAG 对话、缓存管理等业务功能
+- **Core Service**（`src/services/core/`）：对接 Node.js 后端，负责用户认证、权限管理、数据库操作、评估统计等核心功能
+- **Docs-Seeker Service**（`src/services/docs-seeker/`）：对接 Python FastAPI 后端，负责 RAG 检索问答、健康检查、缓存/网关运行指标（原 CharterMate 对接迁移至此）
+- **Doc-Kit Service**（`src/services/doc-kit/`）：对接文档解析 / 向量入库服务
 
 详细使用说明参见 `src/services/README.md`。
 

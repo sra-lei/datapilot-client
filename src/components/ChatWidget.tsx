@@ -11,7 +11,7 @@ import {
 } from "@ant-design/icons";
 import { Button, Input, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { chatStream } from "../services/chartermate";
+import { chatStream } from "../services/docs-seeker";
 import type { ChatMessage } from "../types";
 
 function ChatWidget() {
@@ -54,7 +54,7 @@ function ChatWidget() {
 
     setMessages((prev) => [...prev, agentMessage]);
 
-    // 调用 CharterMate 流式接口
+    // 调用 docs-seeker 问答接口（一次性返回完整回答，非流式）
     await chatStream(
       question,
       (token: string) => {

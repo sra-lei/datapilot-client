@@ -61,6 +61,7 @@ export const CORE_API = {
     SET_EXPORT: (id: number) => `/core/eval/sets/${id}/export`,
     CASES: (id: number) => `/core/eval/sets/${id}/cases`,
     CASE: (id: number) => `/core/eval/cases/${id}`,
+    STATS: '/core/stats/eval',
   },
 
   // 系统相关

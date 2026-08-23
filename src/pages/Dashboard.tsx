@@ -1,7 +1,7 @@
 /**
  * 仪表盘页面 - 三端服务概览样式对齐
  * 对齐基准：Doc-Kit 卡片骨架（title + 右上角刷新按钮 + Spin + 状态 Tag + Descriptions 列表）
- * Core / CharterMate / Doc-Kit 三张卡共享完全一致的：
+ * Core / Docs-Seeker / Doc-Kit 三张卡共享完全一致的：
  *   - Card props：title / extra / hoverable / style (minHeight)
  *   - 内容节奏：Status Tag (marginBottom:12) → Descriptions (labelStyle 110px宽 + #888色)
  *   - 响应式栅格：xs=24 md=8
@@ -33,7 +33,8 @@ import {
 } from "antd";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { checkChartermateHealth, getCacheStats } from "../services/chartermate";
+import { checkDocsSeekerHealth, getCacheStats } from "../services/docs-seeker";
+import type { CacheStats } from "../services/docs-seeker";
 import type { DatabaseStats, QueryResult, TableInfo } from "../services/core";
 import {
   checkCoreHealth,
@@ -401,7 +402,7 @@ function DatabaseViewerPanel() {
   );
 }
 
-// CharterMate 缓存统计的环形图（保留原 SVG 实现，但封装 + 居中）
+// 缓存统计的环形图（保留原 SVG 实现，但封装 + 居中）
 function CacheHitRing({ rate }: { rate: string }) {
   const pct = parseFloat(rate) || 0;
   const color = pct >= 80 ? "#52c41a" : pct >= 50 ? "#faad14" : "#ff4d4f";
@@ -501,14 +502,9 @@ function StatCell({
 }
 
 // ---------------------------------------------------------------
-//  数据类型（CacheStats 由 refreshChartermate 使用）
+//  数据类型
 // ---------------------------------------------------------------
-interface CacheStats {
-  hits: number;
-  misses: number;
-  hit_rate: string;
-  size: number;
-}
+// （CacheStats 类型已由 ../services/docs-seeker 提供，本地不再重复定义）
 
 // ===============================================================
 //  主组件
@@ -548,7 +544,7 @@ function Dashboard() {
     setCmChecking(true);
     let down = true;
     try {
-      const r = await checkChartermateHealth();
+      const r = await checkDocsSeekerHealth();
       down = !(r.success && r.data && r.data.status === "ok");
     } finally {
       setCmDown(down);
@@ -627,10 +623,10 @@ function Dashboard() {
           </Card>
         </Col>
 
-        {/* ====== 2. CharterMate 服务概览（对齐 Doc-Kit 骨架） ====== */}
+        {/* ====== 2. Docs-Seeker 服务概览（对齐 Doc-Kit 骨架） ====== */}
         <Col xs={24} md={8} style={{ marginBottom: 16 }}>
           <Card
-            title="CharterMate 服务概览"
+            title="Docs-Seeker 服务概览"
             hoverable
             style={cardStyle}
             extra={
@@ -648,10 +644,10 @@ function Dashboard() {
               <ServiceStatusTag checking={cmChecking} down={cmDown} />
               <Descriptions {...descriptionsConfig}>
                 <Descriptions.Item label="服务名">
-                  CharterMate
+                  Docs-Seeker
                 </Descriptions.Item>
                 <Descriptions.Item label="服务职责">
-                  RAG + 缓存 + 网关
+                  RAG 检索 + LLM 问答
                 </Descriptions.Item>
                 <Descriptions.Item label="最后检查">
                   {fmt(cmLastCheck)}
@@ -675,9 +671,9 @@ function Dashboard() {
                         {cacheStats.misses}
                       </span>
                     </Descriptions.Item>
-                    <Descriptions.Item label="缓存数量">
+                    <Descriptions.Item label="累计请求">
                       <span style={{ color: "#1890ff", fontWeight: 700 }}>
-                        {cacheStats.size}
+                        {cacheStats.hits + cacheStats.misses}
                       </span>
                     </Descriptions.Item>
                   </>
