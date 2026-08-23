@@ -61,8 +61,8 @@ export type DocKitUploadPanelProps = {
 };
 
 // ---- 异步 ingest 任务阶段参数 ----
-const POLL_INTERVAL_MS = 2000;
-const POLL_MAX_TIMES = 60; // 2 分钟兜底
+const POLL_INTERVAL_MS = 30000; // 状态轮询间隔 30s（避免 2s 一次过于频繁）
+const POLL_MAX_TIMES = 60; // 30 分钟兜底（60 × 30s）；超时后可在列表页用"核对"确认最终结果
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 const ACCEPT_EXTS = [".pdf"];
 
@@ -188,8 +188,10 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
             }
             if (pollCountRef.current >= POLL_MAX_TIMES) {
               stopPoll();
-              setStepError("任务超时（超过 2 分钟仍在运行）");
-              message.warning("任务仍在后台处理，稍后可在列表页查看结果");
+              setStepError("任务超时（超过 30 分钟仍在运行）");
+              message.warning(
+                "任务仍在后台处理，可到列表页点击「核对」确认最终入库结果",
+              );
               cleanupSubmitted();
               setSubmitting(false);
               onTaskComplete?.("timeout");

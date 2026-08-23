@@ -18,6 +18,7 @@ import type {
   DocKitListDocumentsData,
   DocKitListDocumentsParams,
   DocKitSummaryItem,
+  IngestAuditData,
   IngestStatusData,
   IngestSubmitData,
 } from "./types";
@@ -109,6 +110,20 @@ export async function getIngestStatus(
     });
   }
   return result;
+}
+
+/**
+ * 入库核对：任务记录 × Milvus 实际数据交叉验证。
+ * 轮询停止（超时/离开页面）或进程重启后，用这个接口确认文档是否真的入库完成。
+ */
+export async function auditIngest(
+  task_id: string,
+): ReturnType<typeof docKitRequest<IngestAuditData>> {
+  return docKitRequest<IngestAuditData>(DOC_KIT_API.INGEST_AUDIT, {
+    method: "GET",
+    params: { task_id },
+    timeout: 15000,
+  });
 }
 
 // ==========================================================================

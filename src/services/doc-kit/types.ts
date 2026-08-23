@@ -61,6 +61,44 @@ export interface IngestStatusData {
   [key: string]: unknown;
 }
 
+/** /doc-kit/api/v1/ingest/audit?task_id=xxx -> data（入库核对结果） */
+export type IngestAuditVerdict =
+  | "completed_ok" // 任务成功且实际条数与报告一致
+  | "partial" // 任务成功但实际写入少于报告（部分失败）
+  | "task_error" // 任务失败
+  | "running" // 任务仍在处理中
+  | "data_present_no_task" // 任务记录丢失但 Milvus 已有数据 → 实际已入库
+  | "missing" // 任务记录与数据都不存在 → 未入库
+  | "query_error"; // Milvus 核对查询失败，无法验证
+
+export interface IngestAuditData {
+  task_id: string;
+  /** queued / running / success / error / unknown */
+  task_status: string;
+  verdict: IngestAuditVerdict;
+  collection?: string;
+  summary_collection?: string;
+  reported_chunks?: number | null;
+  reported_summaries?: number | null;
+  actual_docs?: number | null;
+  actual_summaries?: number | null;
+  created_at?: number | null;
+  finished_at?: number | null;
+  duration_seconds?: number | null;
+  error?: string | null;
+  [key: string]: unknown;
+}
+
+export const INGEST_AUDIT_VERDICT_LABELS: Record<IngestAuditVerdict, string> = {
+  completed_ok: "核对一致：已完成入库",
+  partial: "部分入库（实际条数少于报告，请重试）",
+  task_error: "任务已失败",
+  running: "任务仍在处理中",
+  data_present_no_task: "数据已在库中（任务记录已丢失）",
+  missing: "未发现入库数据",
+  query_error: "核对查询失败，无法验证",
+} as const;
+
 /** 上传时展示的 Steps 阶段（前端内部映射状态） */
 export type IngestStepKey =
   | "queued"

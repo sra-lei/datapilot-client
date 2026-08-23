@@ -42,6 +42,8 @@ import type {
 } from "../services/doc-kit";
 import {
   DocIngestRegistry,
+  INGEST_AUDIT_VERDICT_LABELS,
+  auditIngest,
   getDocumentChunks,
   getDocumentSummaries,
 } from "../services/doc-kit";
@@ -94,6 +96,9 @@ export default function DocIngest() {
     list: [],
   });
 
+  // 核对按钮 loading（记录正在核对的 task_id）
+  const [auditLoadingId, setAuditLoadingId] = useState<string | null>(null);
+
   // Drawer 状态
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerRec, setDrawerRec] = useState<DocKitDocumentRecord | null>(null);
@@ -126,15 +131,70 @@ export default function DocIngest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [keyword, pageSize]);
 
-  // 上传面板的 health 是 ref.getter（不会触发重渲染），每 1.5s 拉一次刷新标题旁的统计 Tag，
-  // 最多 40s（足够覆盖组件挂载探活 + 手动点击的耗时），结束后仅保留手动 bump
+  // 入库核对：调 /ingest/audit 按 Milvus 实际数据交叉验证，
+  // 解决"轮询 2 分钟停止/进程重启后最终结果不可知"——超时后在这里确认最终结果
+  const handleAudit = useCallback(
+    async (rec: DocKitDocumentRecord) => {
+      if (!rec.task_id) {
+        message.warning("该记录没有任务 ID，无法核对");
+        return;
+      }
+      setAuditLoadingId(rec.task_id);
+      try {
+        const r = await auditIngest(rec.task_id);
+        if (!r.success || !r.data) {
+          message.error(r.msg ?? "核对失败");
+          return;
+        }
+        const d = r.data;
+        const label = INGEST_AUDIT_VERDICT_LABELS[d.verdict] ?? d.verdict;
+        const terminal =
+          d.verdict === "completed_ok" ||
+          d.verdict === "data_present_no_task" ||
+          d.verdict === "partial" ||
+          d.verdict === "task_error" ||
+          d.verdict === "missing";
+        const nextStatus: DocKitDocumentRecord["status"] =
+          d.verdict === "completed_ok" || d.verdict === "data_present_no_task"
+            ? "success"
+            : d.verdict === "running" || d.verdict === "query_error"
+              ? rec.status
+              : "error";
+        // 回写本地注册表，让列表状态与真实数据一致
+        DocIngestRegistry.update(rec.task_id, {
+          status: nextStatus,
+          chunks_count:
+            typeof d.actual_docs === "number" ? d.actual_docs : rec.chunks_count,
+          summary_count:
+            typeof d.actual_summaries === "number"
+              ? d.actual_summaries
+              : rec.summary_count,
+          collection: d.collection ?? rec.collection,
+          summary_collection: d.summary_collection ?? rec.summary_collection,
+          finished_at: terminal ? d.finished_at ?? Date.now() / 1000 : rec.finished_at,
+          error: d.error ?? (nextStatus === "error" ? label : rec.error ?? null),
+        });
+        reload(page);
+        message.info(label);
+      } catch (err) {
+        console.warn("核对失败", err);
+        message.error("核对失败，请稍后重试");
+      } finally {
+        setAuditLoadingId(null);
+      }
+    },
+    [reload, page],
+  );
+
+  // 上传面板的 health 是 ref.getter（不会触发重渲染），每 30s 拉一次刷新标题旁的统计 Tag，
+  // 最多 90s（3 次，覆盖挂载探活 + 手动点击的耗时），结束后仅保留手动 bump
   useEffect(() => {
     const id = window.setInterval(() => {
       bumpHealthUI();
-    }, 1500);
+    }, 30000);
     const stop = window.setTimeout(() => {
       window.clearInterval(id);
-    }, 40000);
+    }, 90000);
     return () => {
       window.clearInterval(id);
       window.clearTimeout(stop);
@@ -262,8 +322,24 @@ export default function DocIngest() {
             "--"
           ),
       },
+      {
+        title: "操作",
+        key: "action",
+        width: 100,
+        render: (_, r) => (
+          <Button
+            size="small"
+            icon={<ReloadOutlined />}
+            loading={auditLoadingId === r.task_id}
+            onClick={() => void handleAudit(r)}
+            title="按 Milvus 实际数据核对入库结果"
+          >
+            核对
+          </Button>
+        ),
+      },
     ],
-    [],
+    [handleAudit, auditLoadingId],
   );
 
   const tableDataSource = data.list.map((r) => ({ ...r, key: r.document_id }));
