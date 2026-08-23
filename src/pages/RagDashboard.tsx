@@ -26,7 +26,6 @@ import {
   getGatewayStats,
   getSemanticCacheStats,
 } from "../services/docs-seeker";
-import { useTheme } from "../contexts/ThemeContext";
 
 const CATEGORIES = ["事实查询", "概念查询", "理解推理", "综合概括"];
 
@@ -69,12 +68,16 @@ function RagDashboard() {
   const [semanticCacheData, setSemanticCacheData] = useState<any>(null);
 
   const { token } = theme.useToken();
-  const { preset } = useTheme();
 
-  // 分类颜色配置（随换肤联动：主色 + 分类色板来自主题预设）
+  // 分类颜色配置（基于主题 token，自动派生：事实查询随主色换肤联动，其余语义色稳定）
   const categoryColors = useMemo<Record<string, string>>(
-    () => preset.categoryColors,
-    [preset],
+    () => ({
+      事实查询: token.colorPrimary,
+      概念查询: token.colorSuccess,
+      理解推理: token.purple,
+      综合概括: token.colorWarning,
+    }),
+    [token],
   );
 
   const fetchData = async () => {

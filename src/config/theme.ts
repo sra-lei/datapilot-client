@@ -30,102 +30,24 @@ const darkColors = {
 };
 
 // ============================================================
-//  换肤：主题预设（主色 + 图表分类色板）
-//  - 主色 colorPrimary 由 ConfigProvider 注入，全站 token 色随动
-//  - categoryColors 供 RagDashboard 等图表使用，换肤时整套联动
+//  换肤（方案 A：主色单一入口，其余全自动派生）
+//  - 新增主题只需加一个 colorPrimary，背景/图表/组件色全部由
+//    antd 主色派生机制自动适配，无需手动配置
 // ============================================================
 
 export interface ThemePreset {
   key: string;
   name: string;
   colorPrimary: string;
-  /** 浅色模式页面背景（主色淡调，跟随主题变化） */
-  bgLayout: string;
-  /** 浅色模式容器背景（卡片/输入框等，主色极淡） */
-  bgContainer: string;
-  /** RAG 看板分类色板：事实查询（主色）/ 概念查询 / 理解推理 / 综合概括 */
-  categoryColors: Record<string, string>;
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
-  {
-    key: "blue",
-    name: "科技蓝",
-    colorPrimary: "#1677ff",
-    bgLayout: "#e6f4ff",
-    bgContainer: "#f0f7ff",
-    categoryColors: {
-      事实查询: "#1677ff",
-      概念查询: "#52c41a",
-      理解推理: "#722ed1",
-      综合概括: "#faad14",
-    },
-  },
-  {
-    key: "geekblue",
-    name: "极客蓝",
-    colorPrimary: "#2f54eb",
-    bgLayout: "#f0f5ff",
-    bgContainer: "#f6f8ff",
-    categoryColors: {
-      事实查询: "#2f54eb",
-      概念查询: "#52c41a",
-      理解推理: "#722ed1",
-      综合概括: "#fa8c16",
-    },
-  },
-  {
-    key: "cyan",
-    name: "翡翠青",
-    colorPrimary: "#13c2c2",
-    bgLayout: "#e6fffb",
-    bgContainer: "#f2fffd",
-    categoryColors: {
-      事实查询: "#13c2c2",
-      概念查询: "#52c41a",
-      理解推理: "#722ed1",
-      综合概括: "#faad14",
-    },
-  },
-  {
-    key: "green",
-    name: "生机绿",
-    colorPrimary: "#52c41a",
-    bgLayout: "#f6ffed",
-    bgContainer: "#f7fff0",
-    categoryColors: {
-      事实查询: "#52c41a",
-      概念查询: "#13c2c2",
-      理解推理: "#722ed1",
-      综合概括: "#fa8c16",
-    },
-  },
-  {
-    key: "orange",
-    name: "活力橙",
-    colorPrimary: "#fa8c16",
-    bgLayout: "#fff7e6",
-    bgContainer: "#fffaf0",
-    categoryColors: {
-      事实查询: "#fa8c16",
-      概念查询: "#52c41a",
-      理解推理: "#722ed1",
-      综合概括: "#faad14",
-    },
-  },
-  {
-    key: "purple",
-    name: "皇家紫",
-    colorPrimary: "#722ed1",
-    bgLayout: "#f9f0ff",
-    bgContainer: "#faf4ff",
-    categoryColors: {
-      事实查询: "#722ed1",
-      概念查询: "#52c41a",
-      理解推理: "#13c2c2",
-      综合概括: "#faad14",
-    },
-  },
+  { key: "blue", name: "科技蓝", colorPrimary: "#1677ff" },
+  { key: "geekblue", name: "极客蓝", colorPrimary: "#2f54eb" },
+  { key: "cyan", name: "翡翠青", colorPrimary: "#13c2c2" },
+  { key: "green", name: "生机绿", colorPrimary: "#52c41a" },
+  { key: "orange", name: "活力橙", colorPrimary: "#fa8c16" },
+  { key: "purple", name: "皇家紫", colorPrimary: "#722ed1" },
 ];
 
 export const DEFAULT_PRESET_KEY = "blue";
@@ -136,31 +58,40 @@ export function getThemePresetByKey(key: string): ThemePreset {
 }
 
 /**
+ * 由主色自动派生浅色页面背景（antd 色板 1 级淡色，如蓝主色 → #e6f4ff）。
+ * 任意主色都有配套淡色，新增主题无需手动配背景。
+ */
+function deriveBgLayout(colorPrimary: string): string {
+  try {
+    const seed = { ...theme.defaultSeed, colorPrimary };
+    return theme.defaultAlgorithm(seed).colorPrimaryBg;
+  } catch {
+    return lightColors.bodyBg;
+  }
+}
+
+/**
  * 根据明暗模式 + 主题预设生成 Ant Design 主题配置
- * 浅色模式：背景（页面底/容器）随主题预设变化；暗色模式：只换主色，背景沿用 antd 暗色默认。
+ * 浅色模式：页面背景由主色自动派生（colorPrimaryBg）；暗色模式：只换主色，背景沿用 antd 暗色默认。
  */
 export function getThemeConfig(
   isDarkMode: boolean,
   preset: ThemePreset = THEME_PRESETS[0],
 ): ThemeConfig {
   const colors = isDarkMode ? darkColors : lightColors;
+  const bgLayout = isDarkMode ? colors.bodyBg : deriveBgLayout(preset.colorPrimary);
 
   return {
     algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
     token: {
       colorPrimary: preset.colorPrimary,
-      // 浅色下背景跟随主题；暗色下不覆盖（antd dark 默认深色背景）
-      ...(isDarkMode
-        ? {}
-        : {
-            colorBgLayout: preset.bgLayout,
-            colorBgContainer: preset.bgContainer,
-          }),
+      // 浅色下页面背景跟随主色（自动派生）；暗色下不覆盖（antd dark 默认深色背景）
+      ...(isDarkMode ? {} : { colorBgLayout: bgLayout }),
     },
     components: {
       Layout: {
         headerBg: colors.headerBg,
-        bodyBg: isDarkMode ? colors.bodyBg : preset.bgLayout,
+        bodyBg: bgLayout,
         siderBg: colors.siderBg,
         triggerBg: colors.triggerBg,
         triggerColor: colors.triggerColor,
