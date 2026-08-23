@@ -275,7 +275,8 @@ function MilvusCollectionBlock({
         <Descriptions
           size="small"
           column={2}
-          labelStyle={{ width: 70, color: "#888" }}
+          labelStyle={{ width: 60, color: "#888" }}
+          contentStyle={{ whiteSpace: "nowrap" }}
         >
           <Descriptions.Item label="向量维度">
             {stat.dim ?? "--"}
@@ -337,13 +338,13 @@ function MilvusMonitorPanel({
         </Descriptions>
         <Divider style={{ margin: "8px 0" }} />
         <Row gutter={16}>
-          <Col span={12}>
+          <Col xs={24} lg={12}>
             <MilvusCollectionBlock
               label="原文集合"
               stat={data?.collections?.docs}
             />
           </Col>
-          <Col span={12}>
+          <Col xs={24} lg={12}>
             <MilvusCollectionBlock
               label="摘要集合"
               stat={data?.collections?.summaries}
