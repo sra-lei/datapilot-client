@@ -8,9 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_SERVER_CORE_HOST: string;
   readonly VITE_SERVER_CORE_PORT: string;
   readonly VITE_SERVER_CORE_URL: string;
-  readonly VITE_SERVER_CHARTERMATE_HOST: string;
-  readonly VITE_SERVER_CHARTERMATE_PORT: string;
-  readonly VITE_SERVER_CHARTERMATE_URL: string;
 }
 
 interface ImportMeta {

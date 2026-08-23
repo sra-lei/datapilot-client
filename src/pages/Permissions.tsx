@@ -20,7 +20,6 @@ import {
   Popconfirm,
   Space,
   Table,
-  Tag,
   theme,
   Transfer,
 } from "antd";
@@ -281,21 +280,6 @@ function PermissionManagement() {
           </Popconfirm>
         </Can>
       ),
-    },
-  ];
-
-  const permissionColumns = [
-    {
-      title: "权限名称",
-      dataIndex: "name",
-      key: "name",
-      render: (text: string) => <Tag color="blue">{text}</Tag>,
-    },
-    {
-      title: "描述",
-      dataIndex: "description",
-      key: "description",
-      render: (text: string) => text || "-",
     },
   ];
 

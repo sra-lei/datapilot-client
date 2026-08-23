@@ -220,16 +220,6 @@ export const coreRequest = async <T = unknown>(
 };
 
 /**
- * CharterMate Service 请求（Python Server）
- */
-export const chartermateRequest = async <T = unknown>(
-  path: string,
-  config: InternalRequestConfig = {},
-): Promise<ApiResponse<T>> => {
-  return request<T>(ServerType.CHARTERMATE, path, config);
-};
-
-/**
  * Doc-Kit Service 请求（文档解析 / 向量入库）
  */
 export const docKitRequest = async <T = unknown>(
@@ -238,10 +228,6 @@ export const docKitRequest = async <T = unknown>(
 ): Promise<ApiResponse<T>> => {
   return request<T>(ServerType.DOC_KIT, path, config);
 };
-
-// 兼容旧名称（已废弃，建议使用新名称）
-export const mainRequest = coreRequest;
-export const businessRequest = chartermateRequest;
 
 export default request;
 export type { InternalRequestConfig as RequestConfig };

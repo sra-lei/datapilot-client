@@ -13,12 +13,6 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path,
       },
-      // 业务服务器代理（Python Server）- 旧 CharterMate 服务（兼容保留）
-      '/api/v1': {
-        target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
-        rewrite: (path) => path,
-      },
       // Docs-Seeker 服务代理（Python FastAPI，RAG 检索问答，端口 8001）
       // 前端用同源路径 /v1/*，Vite 转发到 docs-seeker（路由本身带 /v1 前缀）
       '/v1': {

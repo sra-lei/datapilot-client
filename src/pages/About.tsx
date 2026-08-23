@@ -37,11 +37,6 @@ const backendServices = [
     url: config.servers[ServerType.DOCS_SEEKER].url,
     desc: "RAG 检索问答服务（Python FastAPI）",
   },
-  {
-    name: "CharterMate",
-    url: config.servers[ServerType.CHARTERMATE].url,
-    desc: "旧版服务（兼容保留）",
-  },
 ];
 
 function About() {

@@ -6,7 +6,6 @@
 // 服务器类型枚举
 export enum ServerType {
   CORE = "core", // Core Service（Node.js Server）
-  CHARTERMATE = "chartermate", // 旧 CharterMate Service（兼容保留）
   DOC_KIT = "doc-kit", // Doc-Kit Service（文档解析/向量入库）
   DOCS_SEEKER = "docs-seeker", // Docs-Seeker Service（RAG 检索问答，Python FastAPI）
 }
@@ -53,11 +52,6 @@ export const config: AppConfig = {
       host: getEnv("VITE_SERVER_CORE_HOST", "localhost"),
       port: getEnvNumber("VITE_SERVER_CORE_PORT", 3002),
       url: getEnv("VITE_SERVER_CORE_URL", "http://localhost:3002"),
-    },
-    [ServerType.CHARTERMATE]: {
-      host: getEnv("VITE_SERVER_CHARTERMATE_HOST", "localhost"),
-      port: getEnvNumber("VITE_SERVER_CHARTERMATE_PORT", 8000),
-      url: getEnv("VITE_SERVER_CHARTERMATE_URL", "http://localhost:8000"),
     },
     [ServerType.DOCS_SEEKER]: {
       host: getEnv("VITE_SERVER_DOCS_SEEKER_HOST", "localhost"),
