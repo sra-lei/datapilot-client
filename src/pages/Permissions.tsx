@@ -5,7 +5,6 @@
 import {
   DeleteOutlined,
   KeyOutlined,
-  LockOutlined,
   PlusOutlined,
   ReloadOutlined,
   UserOutlined,
@@ -22,8 +21,8 @@ import {
   Space,
   Table,
   Tag,
-  Transfer,
   theme,
+  Transfer,
 } from "antd";
 import { useEffect, useState } from "react";
 import { Can } from "../components/Can";
@@ -124,6 +123,13 @@ function PermissionManagement() {
     loadPermissions();
     loadRoles();
   }, []);
+
+  // 默认选中第一个角色，直接展示权限配置窗口（无需手动点击角色名）
+  useEffect(() => {
+    if (!selectedRole && roles.length > 0) {
+      loadRoleDetails(roles[0].id);
+    }
+  }, [roles]);
 
   // 创建角色
   const handleCreateRole = () => {
@@ -355,59 +361,35 @@ function PermissionManagement() {
             <Can I="manage" a="Role">
               <Transfer
                 dataSource={transferData}
-                titles={["可授权限", "已授权限"]}
+                titles={["可授权限", "已授权限", "权限描述"]}
                 targetKeys={rolePermissions as any}
                 onChange={(targetKeys) =>
                   handleTransferChange(targetKeys as string[])
                 }
-                render={(item) => item.title!}
+                render={(item) => (
+                  <span>
+                    <span style={{ fontWeight: 500 }}>{item.title}</span>
+                    {item.description ? (
+                      <span
+                        style={{
+                          marginLeft: 8,
+                          fontSize: 12,
+                          color: token.colorTextTertiary,
+                        }}
+                      >
+                        {item.description}
+                      </span>
+                    ) : null}
+                  </span>
+                )}
                 listStyle={{
-                  width: 400,
+                  width: 450,
                   height: 400,
                 }}
               />
             </Can>
-
-            {!selectedRole.permissions.length ? (
-              <div
-                style={{ marginTop: 16, textAlign: "center", color: token.colorTextTertiary }}
-              >
-                暂未配置权限
-              </div>
-            ) : (
-              <Table
-                columns={permissionColumns}
-                dataSource={selectedRole.permissions}
-                rowKey="id"
-                pagination={false}
-                size="small"
-                style={{ marginTop: 16 }}
-              />
-            )}
           </Card>
         )}
-
-        <Card
-          title={
-            <>
-              <LockOutlined /> 系统权限
-            </>
-          }
-          extra={
-            <Button icon={<ReloadOutlined />} onClick={loadPermissions}>
-              刷新
-            </Button>
-          }
-        >
-          <Table
-            columns={permissionColumns}
-            dataSource={permissions}
-            rowKey="id"
-            loading={loading}
-            pagination={false}
-            size="small"
-          />
-        </Card>
       </Space>
 
       {/* 创建角色 Modal */}
