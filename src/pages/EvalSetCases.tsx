@@ -452,17 +452,26 @@ function EvalSetCases() {
         >
           {detail && (
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <div>
-                <Text type="secondary">
-                  文档范围：{detail.set.doc_scope || '-'}
-                </Text>
-                <span style={{ marginLeft: 16 }}>
-                  状态：{statusTag(detail.set.status)}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 16,
+                }}
+              >
+                <span>
+                  <Text type="secondary">
+                    文档范围：{detail.set.doc_scope || '-'}
+                  </Text>
                 </span>
-                <span style={{ marginLeft: 16 }}>用例数：{detail.cases.length}</span>
-                <span style={{ marginLeft: 16 }}>
-                  <Text type="secondary">导出仅含「正常」用例，禁用项评测时跳过</Text>
-                </span>
+                <Space size="middle">
+                  <span>状态：{statusTag(detail.set.status)}</span>
+                  <span>用例数：{detail.cases.length}</span>
+                  <Text type="secondary">
+                    导出仅含「正常」用例，禁用项评测时跳过
+                  </Text>
+                </Space>
               </div>
               <Table
                 rowKey="id"
