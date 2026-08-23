@@ -39,6 +39,10 @@ export interface ThemePreset {
   key: string;
   name: string;
   colorPrimary: string;
+  /** 浅色模式页面背景（主色淡调，跟随主题变化） */
+  bgLayout: string;
+  /** 浅色模式容器背景（卡片/输入框等，主色极淡） */
+  bgContainer: string;
   /** RAG 看板分类色板：事实查询（主色）/ 概念查询 / 理解推理 / 综合概括 */
   categoryColors: Record<string, string>;
 }
@@ -48,6 +52,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: "blue",
     name: "科技蓝",
     colorPrimary: "#1677ff",
+    bgLayout: "#e6f4ff",
+    bgContainer: "#f0f7ff",
     categoryColors: {
       事实查询: "#1677ff",
       概念查询: "#52c41a",
@@ -59,6 +65,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: "geekblue",
     name: "极客蓝",
     colorPrimary: "#2f54eb",
+    bgLayout: "#f0f5ff",
+    bgContainer: "#f6f8ff",
     categoryColors: {
       事实查询: "#2f54eb",
       概念查询: "#52c41a",
@@ -70,6 +78,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: "cyan",
     name: "翡翠青",
     colorPrimary: "#13c2c2",
+    bgLayout: "#e6fffb",
+    bgContainer: "#f2fffd",
     categoryColors: {
       事实查询: "#13c2c2",
       概念查询: "#52c41a",
@@ -81,6 +91,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: "green",
     name: "生机绿",
     colorPrimary: "#52c41a",
+    bgLayout: "#f6ffed",
+    bgContainer: "#f7fff0",
     categoryColors: {
       事实查询: "#52c41a",
       概念查询: "#13c2c2",
@@ -92,6 +104,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: "orange",
     name: "活力橙",
     colorPrimary: "#fa8c16",
+    bgLayout: "#fff7e6",
+    bgContainer: "#fffaf0",
     categoryColors: {
       事实查询: "#fa8c16",
       概念查询: "#52c41a",
@@ -103,6 +117,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     key: "purple",
     name: "皇家紫",
     colorPrimary: "#722ed1",
+    bgLayout: "#f9f0ff",
+    bgContainer: "#faf4ff",
     categoryColors: {
       事实查询: "#722ed1",
       概念查询: "#52c41a",
@@ -121,6 +137,7 @@ export function getThemePresetByKey(key: string): ThemePreset {
 
 /**
  * 根据明暗模式 + 主题预设生成 Ant Design 主题配置
+ * 浅色模式：背景（页面底/容器）随主题预设变化；暗色模式：只换主色，背景沿用 antd 暗色默认。
  */
 export function getThemeConfig(
   isDarkMode: boolean,
@@ -132,11 +149,18 @@ export function getThemeConfig(
     algorithm: isDarkMode ? theme.darkAlgorithm : theme.defaultAlgorithm,
     token: {
       colorPrimary: preset.colorPrimary,
+      // 浅色下背景跟随主题；暗色下不覆盖（antd dark 默认深色背景）
+      ...(isDarkMode
+        ? {}
+        : {
+            colorBgLayout: preset.bgLayout,
+            colorBgContainer: preset.bgContainer,
+          }),
     },
     components: {
       Layout: {
         headerBg: colors.headerBg,
-        bodyBg: colors.bodyBg,
+        bodyBg: isDarkMode ? colors.bodyBg : preset.bgLayout,
         siderBg: colors.siderBg,
         triggerBg: colors.triggerBg,
         triggerColor: colors.triggerColor,
@@ -144,7 +168,8 @@ export function getThemeConfig(
       Menu: {
         darkItemBg: colors.darkItemBg,
         darkSubMenuItemBg: colors.darkSubMenuItemBg,
-        darkItemSelectedBg: colors.darkItemSelectedBg,
+        // 浅色下侧栏选中高亮跟随主色
+        darkItemSelectedBg: isDarkMode ? colors.darkItemSelectedBg : preset.colorPrimary,
       },
     },
   };
