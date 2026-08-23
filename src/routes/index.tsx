@@ -8,6 +8,7 @@ import About from "../pages/About";
 import Dashboard from "../pages/Dashboard";
 import DocIngest from "../pages/DocIngest";
 import EvalSets from "../pages/EvalSets";
+import EvalSetCases from "../pages/EvalSetCases";
 import Login from "../pages/Login";
 import NotFound from "../pages/NotFound";
 import PermissionManagement from "../pages/Permissions";
@@ -58,6 +59,10 @@ const protectedRoutes: RouteObject[] = [
       {
         path: "/eval-sets",
         element: <EvalSets />,
+      },
+      {
+        path: "/eval-sets/:id",
+        element: <EvalSetCases />,
       },
       {
         path: "/doc-ingest",

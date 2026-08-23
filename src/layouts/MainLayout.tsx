@@ -144,6 +144,11 @@ function MainLayout() {
 
   const menuItems = filterMenuItems(allMenuItems);
 
+  // 子页面（如 /eval-sets/:id）高亮对应菜单项
+  const selectedKey = location.pathname.startsWith('/eval-sets')
+    ? '/eval-sets'
+    : location.pathname;
+
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key);
   };
@@ -283,7 +288,7 @@ function MainLayout() {
           <Menu
             theme="dark"
             mode="inline"
-            selectedKeys={[location.pathname]}
+            selectedKeys={[selectedKey]}
             items={menuItems}
             onClick={handleMenuClick}
           />
