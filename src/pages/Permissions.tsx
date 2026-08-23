@@ -23,6 +23,7 @@ import {
   Table,
   Tag,
   Transfer,
+  theme,
 } from "antd";
 import { useEffect, useState } from "react";
 import { Can } from "../components/Can";
@@ -39,6 +40,7 @@ import {
 import { repairLatin1Mojibake } from "../utils/textRepair";
 
 function PermissionManagement() {
+  const { token } = theme.useToken();
   const [loading, setLoading] = useState(false);
   const [permissions, setPermissions] = useState<Permission[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -368,7 +370,7 @@ function PermissionManagement() {
 
             {!selectedRole.permissions.length ? (
               <div
-                style={{ marginTop: 16, textAlign: "center", color: "#999" }}
+                style={{ marginTop: 16, textAlign: "center", color: token.colorTextTertiary }}
               >
                 暂未配置权限
               </div>

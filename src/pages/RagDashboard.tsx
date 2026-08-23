@@ -15,6 +15,7 @@ import {
   Spin,
   Statistic,
   Tag,
+  theme,
 } from "antd";
 import ReactECharts from "echarts-for-react";
 import { useEffect, useMemo, useState } from "react";
@@ -25,14 +26,6 @@ import {
   getGatewayStats,
   getSemanticCacheStats,
 } from "../services/docs-seeker";
-
-// 分类颜色配置
-const CATEGORY_COLORS: Record<string, string> = {
-  事实查询: "#1890ff",
-  概念查询: "#52c41a",
-  理解推理: "#722ed1",
-  综合概括: "#faad14",
-};
 
 const CATEGORIES = ["事实查询", "概念查询", "理解推理", "综合概括"];
 
@@ -55,10 +48,13 @@ function formatTimestamp(ts: string): string {
 /**
  * 获取分数颜色
  */
-function getScoreColor(score: number): string {
-  if (score >= 0.8) return "#52c41a";
-  if (score >= 0.5) return "#faad14";
-  return "#ff4d4f";
+function getScoreColor(
+  score: number,
+  token: ReturnType<typeof theme.useToken>["token"],
+): string {
+  if (score >= 0.8) return token.colorSuccess;
+  if (score >= 0.5) return token.colorWarning;
+  return token.colorError;
 }
 
 function RagDashboard() {
@@ -70,6 +66,19 @@ function RagDashboard() {
   const [cacheData, setCacheData] = useState<any>(null);
   const [gatewayData, setGatewayData] = useState<any>(null);
   const [semanticCacheData, setSemanticCacheData] = useState<any>(null);
+
+  const { token } = theme.useToken();
+
+  // 分类颜色配置（基于主题 token，随暗黑模式自适应）
+  const categoryColors = useMemo<Record<string, string>>(
+    () => ({
+      事实查询: token.colorPrimary,
+      概念查询: token.colorSuccess,
+      理解推理: token.purple,
+      综合概括: token.colorWarning,
+    }),
+    [token],
+  );
 
   const fetchData = async () => {
     setLoading(true);
@@ -161,7 +170,7 @@ function RagDashboard() {
         name: "平均分",
         type: "line",
         data: history.map((h) => +(h.avg_score * 100).toFixed(1)),
-        itemStyle: { color: "#ff4d4f" },
+        itemStyle: { color: token.colorError },
         lineStyle: { width: 3 },
         symbol: "circle",
         symbolSize: 8,
@@ -177,7 +186,7 @@ function RagDashboard() {
           const stat = h.category_stats?.[cat];
           return stat ? +(stat.avg_score * 100).toFixed(1) : null;
         }),
-        itemStyle: { color: CATEGORY_COLORS[cat] },
+        itemStyle: { color: categoryColors[cat] },
         lineStyle: { width: 2, type: "dashed" },
         symbol: "diamond",
         symbolSize: 6,
@@ -216,7 +225,7 @@ function RagDashboard() {
       },
       series,
     };
-  }, [history]);
+  }, [history, token, categoryColors]);
 
   // ===== 用例柱状图配置 =====
   const caseOption = useMemo(() => {
@@ -225,7 +234,7 @@ function RagDashboard() {
     const results = latest.results;
     const xData = results.map((r) => r.id);
     const scores = results.map((r) => +(r.score * 100).toFixed(1));
-    const colors = results.map((r) => getScoreColor(r.score));
+    const colors = results.map((r) => getScoreColor(r.score, token));
 
     return {
       title: {
@@ -271,7 +280,7 @@ function RagDashboard() {
         },
       ],
     };
-  }, [latest]);
+  }, [latest, token]);
 
   // ===== 分类雷达图配置 =====
   const radarOption = useMemo(() => {
@@ -303,7 +312,7 @@ function RagDashboard() {
               (cat) => +((latestCats[cat]?.avg_score ?? 0) * 100).toFixed(1),
             ),
             name: "最新",
-            itemStyle: { color: "#1890ff" },
+            itemStyle: { color: token.colorPrimary },
             areaStyle: { opacity: 0.2 },
           },
         ],
@@ -320,7 +329,7 @@ function RagDashboard() {
               (cat) => +((prevCats[cat]?.avg_score ?? 0) * 100).toFixed(1),
             ),
             name: "上一次",
-            itemStyle: { color: "#faad14" },
+            itemStyle: { color: token.colorWarning },
             areaStyle: { opacity: 0.1 },
           },
         ],
@@ -344,7 +353,7 @@ function RagDashboard() {
       },
       series,
     };
-  }, [latest, history]);
+  }, [latest, history, token]);
 
   // ===== 失败用例列表 =====
   const failedCases = latest?.summary?.failed_cases ?? [];
@@ -401,7 +410,7 @@ function RagDashboard() {
                         cy="40"
                         r="32"
                         fill="none"
-                        stroke="#f0f0f0"
+                        stroke={token.colorBorderSecondary}
                         strokeWidth="6"
                       />
                       {/* 进度圆环 */}
@@ -412,10 +421,10 @@ function RagDashboard() {
                         fill="none"
                         stroke={
                           parseFloat(cacheData.hit_rate) >= 80
-                            ? "#52c41a"
+                            ? token.colorSuccess
                             : parseFloat(cacheData.hit_rate) >= 50
-                              ? "#faad14"
-                              : "#ff4d4f"
+                              ? token.colorWarning
+                              : token.colorError
                         }
                         strokeWidth="6"
                         strokeLinecap="round"
@@ -440,12 +449,12 @@ function RagDashboard() {
                         style={{
                           fontSize: 16,
                           fontWeight: "bold",
-                          color: "#1890ff",
+                          color: token.colorPrimary,
                         }}
                       >
                         {cacheData.hit_rate}
                       </div>
-                      <div style={{ fontSize: 9, color: "#888" }}>命中率</div>
+                      <div style={{ fontSize: 9, color: token.colorTextSecondary }}>命中率</div>
                     </div>
                   </div>
 
@@ -456,12 +465,12 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span style={{ color: "#888", fontSize: 12 }}>命中:</span>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>命中:</span>
                       <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
-                          color: "#52c41a",
+                          color: token.colorSuccess,
                         }}
                       >
                         {cacheData.hits}
@@ -470,14 +479,14 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span style={{ color: "#888", fontSize: 12 }}>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
                         未命中:
                       </span>
                       <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
-                          color: "#ff4d4f",
+                          color: token.colorError,
                         }}
                       >
                         {cacheData.misses}
@@ -486,14 +495,14 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span style={{ color: "#888", fontSize: 12 }}>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
                         累计请求:
                       </span>
                       <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
-                          color: "#1890ff",
+                          color: token.colorPrimary,
                         }}
                       >
                         {cacheData.hits + cacheData.misses}
@@ -519,7 +528,7 @@ function RagDashboard() {
                   <div
                     style={{ display: "flex", alignItems: "center", gap: 6 }}
                   >
-                    <span style={{ color: "#888", fontSize: 12 }}>熔断器:</span>
+                    <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>熔断器:</span>
                     <Tag
                       color={
                         gatewayData.circuit_state === "closed"
@@ -542,12 +551,12 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      <span style={{ color: "#888", fontSize: 11 }}>调用:</span>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>调用:</span>
                       <span
                         style={{
                           fontSize: 13,
                           fontWeight: "bold",
-                          color: "#1890ff",
+                          color: token.colorPrimary,
                         }}
                       >
                         {gatewayData.total_calls}
@@ -556,12 +565,12 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      <span style={{ color: "#888", fontSize: 11 }}>成功:</span>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>成功:</span>
                       <span
                         style={{
                           fontSize: 13,
                           fontWeight: "bold",
-                          color: "#52c41a",
+                          color: token.colorSuccess,
                         }}
                       >
                         {gatewayData.success_calls}
@@ -570,12 +579,12 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      <span style={{ color: "#888", fontSize: 11 }}>备用:</span>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>备用:</span>
                       <span
                         style={{
                           fontSize: 13,
                           fontWeight: "bold",
-                          color: "#faad14",
+                          color: token.colorWarning,
                         }}
                       >
                         {gatewayData.fallback_calls}
@@ -584,12 +593,12 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 4 }}
                     >
-                      <span style={{ color: "#888", fontSize: 11 }}>失败:</span>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>失败:</span>
                       <span
                         style={{
                           fontSize: 13,
                           fontWeight: "bold",
-                          color: "#ff4d4f",
+                          color: token.colorError,
                         }}
                       >
                         {gatewayData.circuit_failures}
@@ -618,7 +627,7 @@ function RagDashboard() {
                         cy="40"
                         r="32"
                         fill="none"
-                        stroke="#f0f0f0"
+                        stroke={token.colorBorderSecondary}
                         strokeWidth="6"
                       />
                       {/* 进度圆环 */}
@@ -629,10 +638,10 @@ function RagDashboard() {
                         fill="none"
                         stroke={
                           parseFloat(semanticCacheData.hit_rate) >= 80
-                            ? "#52c41a"
+                            ? token.colorSuccess
                             : parseFloat(semanticCacheData.hit_rate) >= 50
-                              ? "#faad14"
-                              : "#ff4d4f"
+                              ? token.colorWarning
+                              : token.colorError
                         }
                         strokeWidth="6"
                         strokeLinecap="round"
@@ -657,12 +666,12 @@ function RagDashboard() {
                         style={{
                           fontSize: 16,
                           fontWeight: "bold",
-                          color: "#1890ff",
+                          color: token.colorPrimary,
                         }}
                       >
                         {semanticCacheData.hit_rate}
                       </div>
-                      <div style={{ fontSize: 9, color: "#888" }}>命中率</div>
+                      <div style={{ fontSize: 9, color: token.colorTextSecondary }}>命中率</div>
                     </div>
                   </div>
 
@@ -673,12 +682,12 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span style={{ color: "#888", fontSize: 12 }}>命中:</span>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>命中:</span>
                       <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
-                          color: "#52c41a",
+                          color: token.colorSuccess,
                         }}
                       >
                         {semanticCacheData.hits}
@@ -687,14 +696,14 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span style={{ color: "#888", fontSize: 12 }}>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
                         未命中:
                       </span>
                       <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
-                          color: "#ff4d4f",
+                          color: token.colorError,
                         }}
                       >
                         {semanticCacheData.misses}
@@ -703,14 +712,14 @@ function RagDashboard() {
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 6 }}
                     >
-                      <span style={{ color: "#888", fontSize: 12 }}>
+                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
                         相似度阈值:
                       </span>
                       <span
                         style={{
                           fontSize: 14,
                           fontWeight: "bold",
-                          color: "#1890ff",
+                          color: token.colorPrimary,
                         }}
                       >
                         {semanticCacheData.threshold}
@@ -735,7 +744,7 @@ function RagDashboard() {
               value={latest ? (latest.avg_score * 100).toFixed(1) : "--"}
               suffix="%"
               valueStyle={{
-                color: latest ? getScoreColor(latest.avg_score) : undefined,
+                color: latest ? getScoreColor(latest.avg_score, token) : undefined,
               }}
             />
           </Card>
@@ -811,15 +820,15 @@ function RagDashboard() {
                 alignItems: "center",
                 gap: 12,
                 padding: "8px 0",
-                borderBottom: "1px solid #f0f0f0",
+                borderBottom: `1px solid ${token.colorBorderSecondary}`,
               }}
             >
               <Tag color="red">{c.id}</Tag>
-              <span style={{ flex: 1, color: "#666", fontSize: 13 }}>
+              <span style={{ flex: 1, color: token.colorText, fontSize: 13 }}>
                 {c.question}
               </span>
               <Tag
-                color={getScoreColor(c.score) === "#52c41a" ? "green" : "red"}
+                color={getScoreColor(c.score, token) === token.colorSuccess ? "green" : "red"}
               >
                 {(c.score * 100).toFixed(0)}%
               </Tag>

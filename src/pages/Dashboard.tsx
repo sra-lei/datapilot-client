@@ -3,7 +3,7 @@
  * 对齐基准：Doc-Kit 卡片骨架（title + 右上角刷新按钮 + Spin + 状态 Tag + Descriptions 列表）
  * Core / Docs-Seeker / Doc-Kit 三张卡共享完全一致的：
  *   - Card props：title / extra / hoverable / style (minHeight)
- *   - 内容节奏：Status Tag (marginBottom:12) → Descriptions (labelStyle 110px宽 + #888色)
+ *   - 内容节奏：Status Tag (marginBottom:12) → Descriptions (labelStyle 110px宽 + colorTextSecondary色)
  *   - 响应式栅格：xs=24 md=8
  */
 
@@ -20,6 +20,7 @@ import {
   Statistic,
   Tag,
   Typography,
+  theme,
 } from "antd";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
@@ -48,7 +49,7 @@ const cardStyle = { minHeight: 400, height: "100%" } as const;
 const descriptionsConfig = {
   size: "small" as const,
   column: 1,
-  labelStyle: { width: 110, color: "#888" },
+  labelStyle: { width: 110 },
 } as const;
 const statusTagStyle = { marginBottom: 12 } as const;
 
@@ -98,6 +99,7 @@ function RagUsagePanel({
   loading: boolean;
   onRefresh: () => void;
 }) {
+  const { token } = theme.useToken();
   const successRate = parseFloat(data?.success_rate || "0") || 0;
 
   return (
@@ -128,7 +130,9 @@ function RagUsagePanel({
             <Statistic
               title="成功率"
               value={data?.success_rate ?? "0.0%"}
-              valueStyle={{ color: successRate >= 90 ? "#52c41a" : "#faad14" }}
+              valueStyle={{
+                color: successRate >= 90 ? token.colorSuccess : token.colorWarning,
+              }}
             />
           </Col>
           <Col span={8}>
@@ -142,8 +146,14 @@ function RagUsagePanel({
 
 // 缓存统计的环形图（保留原 SVG 实现，但封装 + 居中）
 function CacheHitRing({ rate }: { rate: string }) {
+  const { token } = theme.useToken();
   const pct = parseFloat(rate) || 0;
-  const color = pct >= 80 ? "#52c41a" : pct >= 50 ? "#faad14" : "#ff4d4f";
+  const color =
+    pct >= 80
+      ? token.colorSuccess
+      : pct >= 50
+        ? token.colorWarning
+        : token.colorError;
   const R = 30;
   const C = 2 * Math.PI * R;
   return (
@@ -164,7 +174,7 @@ function CacheHitRing({ rate }: { rate: string }) {
             cy="40"
             r={R}
             fill="none"
-            stroke="#f0f0f0"
+            stroke={token.colorBorderSecondary}
             strokeWidth={6}
           />
           <circle
@@ -196,19 +206,19 @@ function CacheHitRing({ rate }: { rate: string }) {
             style={{
               fontSize: 16,
               fontWeight: 700,
-              color: "#1890ff",
+              color: token.colorPrimary,
               lineHeight: 1.2,
             }}
           >
             {isNaN(pct) ? "--" : rate}
           </div>
-          <div style={{ fontSize: 10, color: "#888" }}>命中率</div>
+          <div style={{ fontSize: 10, color: token.colorTextSecondary }}>命中率</div>
         </div>
       </div>
       <div style={{ display: "flex", gap: 20, flex: 1, flexWrap: "wrap" }}>
-        <StatCell label="命中" value={null} valueColor="#52c41a" />
-        <StatCell label="未命中" value={null} valueColor="#ff4d4f" />
-        <StatCell label="缓存量" value={null} valueColor="#1890ff" />
+        <StatCell label="命中" value={null} valueColor={token.colorSuccess} />
+        <StatCell label="未命中" value={null} valueColor={token.colorError} />
+        <StatCell label="缓存量" value={null} valueColor={token.colorPrimary} />
       </div>
     </div>
   );
@@ -223,6 +233,7 @@ function StatCell({
   value: ReactNode;
   valueColor?: string;
 }) {
+  const { token } = theme.useToken();
   return (
     <div style={{ textAlign: "center" }}>
       <div
@@ -234,7 +245,7 @@ function StatCell({
       >
         {value ?? "--"}
       </div>
-      <div style={{ fontSize: 10, color: "#888" }}>{label}</div>
+      <div style={{ fontSize: 10, color: token.colorTextSecondary }}>{label}</div>
     </div>
   );
 }
@@ -249,9 +260,10 @@ function MilvusCollectionBlock({
   label: string;
   stat?: MilvusCollectionStats;
 }) {
+  const { token } = theme.useToken();
   if (!stat) {
     return (
-      <div style={{ color: "#bbb", marginBottom: 12 }}>
+      <div style={{ color: token.colorTextQuaternary, marginBottom: 12 }}>
         {label}：暂无数据
       </div>
     );
@@ -271,7 +283,7 @@ function MilvusCollectionBlock({
         <Descriptions
           size="small"
           column={2}
-          labelStyle={{ width: 70, color: "#888" }}
+          labelStyle={{ width: 70, color: token.colorTextSecondary }}
           contentStyle={{ whiteSpace: "nowrap" }}
         >
           <Descriptions.Item label="向量维度">
@@ -301,6 +313,7 @@ function MilvusMonitorPanel({
   loading: boolean;
   onRefresh: () => void;
 }) {
+  const { token } = theme.useToken();
   return (
     <Card
       title={
@@ -327,7 +340,13 @@ function MilvusMonitorPanel({
           okText="已连接"
           downText="未连接"
         />
-        <Descriptions {...descriptionsConfig}>
+        <Descriptions
+          {...descriptionsConfig}
+          labelStyle={{
+            ...descriptionsConfig.labelStyle,
+            color: token.colorTextSecondary,
+          }}
+        >
           <Descriptions.Item label="服务版本">
             {data?.server_version || "--"}
           </Descriptions.Item>
@@ -361,6 +380,7 @@ function MilvusMonitorPanel({
 //  主组件
 // ===============================================================
 function Dashboard() {
+  const { token } = theme.useToken();
   // ------- Core -------
   const [coreChecking, setCoreChecking] = useState(true);
   const [coreDown, setCoreDown] = useState(false);
@@ -492,7 +512,13 @@ function Dashboard() {
           >
             <Spin spinning={coreChecking}>
               <ServiceStatusTag checking={coreChecking} down={coreDown} />
-              <Descriptions {...descriptionsConfig}>
+              <Descriptions
+          {...descriptionsConfig}
+          labelStyle={{
+            ...descriptionsConfig.labelStyle,
+            color: token.colorTextSecondary,
+          }}
+        >
                 <Descriptions.Item label="服务名">
                   Core Service
                 </Descriptions.Item>
@@ -527,7 +553,13 @@ function Dashboard() {
           >
             <Spin spinning={cmChecking}>
               <ServiceStatusTag checking={cmChecking} down={cmDown} />
-              <Descriptions {...descriptionsConfig}>
+              <Descriptions
+          {...descriptionsConfig}
+          labelStyle={{
+            ...descriptionsConfig.labelStyle,
+            color: token.colorTextSecondary,
+          }}
+        >
                 <Descriptions.Item label="服务名">
                   Docs-Seeker
                 </Descriptions.Item>
@@ -541,23 +573,23 @@ function Dashboard() {
                   {cacheStats ? (
                     <CacheHitRing rate={cacheStats.hit_rate} />
                   ) : (
-                    <span style={{ color: "#bbb" }}>暂无缓存数据</span>
+                    <span style={{ color: token.colorTextQuaternary }}>暂无缓存数据</span>
                   )}
                 </Descriptions.Item>
                 {cacheStats ? (
                   <>
                     <Descriptions.Item label="命中">
-                      <span style={{ color: "#52c41a", fontWeight: 700 }}>
+                      <span style={{ color: token.colorSuccess, fontWeight: 700 }}>
                         {cacheStats.hits}
                       </span>
                     </Descriptions.Item>
                     <Descriptions.Item label="未命中">
-                      <span style={{ color: "#ff4d4f", fontWeight: 700 }}>
+                      <span style={{ color: token.colorError, fontWeight: 700 }}>
                         {cacheStats.misses}
                       </span>
                     </Descriptions.Item>
                     <Descriptions.Item label="累计请求">
-                      <span style={{ color: "#1890ff", fontWeight: 700 }}>
+                      <span style={{ color: token.colorPrimary, fontWeight: 700 }}>
                         {cacheStats.hits + cacheStats.misses}
                       </span>
                     </Descriptions.Item>
@@ -587,7 +619,13 @@ function Dashboard() {
           >
             <Spin spinning={dkChecking}>
               <ServiceStatusTag checking={dkChecking} down={dkDown} />
-              <Descriptions {...descriptionsConfig}>
+              <Descriptions
+          {...descriptionsConfig}
+          labelStyle={{
+            ...descriptionsConfig.labelStyle,
+            color: token.colorTextSecondary,
+          }}
+        >
                 <Descriptions.Item label="服务名">
                   {dkHealth?.service ?? "doc-kit"}
                 </Descriptions.Item>

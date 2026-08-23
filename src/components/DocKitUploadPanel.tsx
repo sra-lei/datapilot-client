@@ -1,4 +1,4 @@
-﻿/**
+/**
  * doc-kit 文档上传面板（可复用）
  * 负责：服务探活 → PDF 校验 → uploadAndIngest 提交 → task_id 轮询 → Steps 推进
  *
@@ -536,7 +536,7 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                           color:
                             st === "wait"
                               ? token.colorTextTertiary
-                              : "#fff",
+                              : token.colorTextLightSolid,
                           background:
                             st === "wait" ? token.colorFillTertiary : color,
                           border: `1px solid ${color}`,

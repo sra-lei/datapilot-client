@@ -28,6 +28,7 @@ import {
   Tabs,
   Tag,
   Typography,
+  theme,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { ReactNode } from "react";
@@ -78,6 +79,7 @@ function statusTag(status: DocKitDocumentRecord["status"]) {
 }
 
 export default function DocIngest() {
+  const { token } = theme.useToken();
   // 上传面板 ref：对外拿探活状态（给 Collapse Title 右侧的"重新探活"按钮用）
   const uploadPanelRef = useRef<DocKitUploadPanelRef>(null);
   // ref 的 health/healthDown 变化不会触发重渲染，用一个 tick 强制刷新 Collapse 标题的 Tag
@@ -246,7 +248,7 @@ export default function DocIngest() {
         key: "filename",
         render: (_, r) => (
           <Space>
-            <FileTextOutlined style={{ color: "#1890ff" }} />
+            <FileTextOutlined style={{ color: token.colorPrimary }} />
             <Button
               type="link"
               size="small"
@@ -481,7 +483,7 @@ export default function DocIngest() {
             display: "flex",
             justifyContent: "flex-end",
             paddingTop: 12,
-            borderTop: "1px solid #f0f0f0",
+            borderTop: `1px solid ${token.colorBorderSecondary}`,
             marginTop: 8,
           }}
         >
@@ -532,7 +534,7 @@ export default function DocIngest() {
               size="small"
               column={2}
               style={{ marginBottom: 16 }}
-              labelStyle={{ width: 120, color: "#888" }}
+              labelStyle={{ width: 120, color: token.colorTextSecondary }}
             >
               <Descriptions.Item label="文档 ID">
                 {drawerRec.document_id}
@@ -569,12 +571,13 @@ export default function DocIngest() {
                     summaries,
                     detailLoading,
                     drawerRec,
+                    token,
                   ),
                 },
                 {
                   key: "chunks",
                   label: `原文分块（${chunks.length}）`,
-                  children: renderChunks(chunks, detailLoading, drawerRec),
+                  children: renderChunks(chunks, detailLoading, drawerRec, token),
                 },
               ]}
             />
@@ -590,6 +593,7 @@ function renderSummaries(
   summaries: DocKitSummaryItem[],
   loading: boolean,
   rec: DocKitDocumentRecord,
+  token: ReturnType<typeof theme.useToken>["token"],
 ) {
   if (loading) {
     return (
@@ -606,7 +610,7 @@ function renderSummaries(
         {rec.status === "success" && rec.summary_count > 0 ? (
           <>
             <AlertPlaceholder
-              color="#faad14"
+              color={token.colorWarning}
               title={`入库完成，共写入 ${rec.summary_count} 条摘要。`}
               desc={
                 <>
@@ -675,6 +679,7 @@ function renderChunks(
   chunks: DocKitChunkItem[],
   loading: boolean,
   rec: DocKitDocumentRecord,
+  token: ReturnType<typeof theme.useToken>["token"],
 ) {
   if (loading) {
     return (
@@ -689,7 +694,7 @@ function renderChunks(
       <div style={{ padding: "12px 0" }}>
         {rec.status === "success" && rec.chunks_count > 0 ? (
           <AlertPlaceholder
-            color="#1890ff"
+            color={token.colorPrimary}
             title={`入库完成，共写入 ${rec.chunks_count} 条分块。`}
             desc={
               <>
@@ -755,6 +760,7 @@ function AlertPlaceholder({
   title: string;
   desc: ReactNode;
 }) {
+  const { token } = theme.useToken();
   return (
     <div
       style={{
@@ -774,7 +780,7 @@ function AlertPlaceholder({
       >
         {title}
       </div>
-      <div style={{ color: "#555", fontSize: 12, lineHeight: 1.6 }}>{desc}</div>
+      <div style={{ color: token.colorText, fontSize: 12, lineHeight: 1.6 }}>{desc}</div>
     </div>
   );
 }

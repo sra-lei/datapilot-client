@@ -3,12 +3,13 @@
  */
 
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
-import { Button, Card, Form, Input, message } from "antd";
+import { Button, Card, Form, Input, message, theme } from "antd";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { login } from "../services/core";
 
 function Login() {
+  const { token } = theme.useToken();
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
   const navigate = useNavigate();
@@ -110,7 +111,7 @@ function Login() {
         </Form>
 
         <div style={{ textAlign: "center", marginTop: 16 }}>
-          <a href="/register" style={{ color: "#1890ff" }}>
+          <a href="/register" style={{ color: token.colorLink }}>
             还没有账号？立即注册
           </a>
         </div>

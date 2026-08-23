@@ -3,11 +3,12 @@
  */
 
 import { LockOutlined, MailOutlined, UserOutlined } from "@ant-design/icons";
-import { Button, Card, Form, Input, message } from "antd";
+import { Button, Card, Form, Input, message, theme } from "antd";
 import { useState } from "react";
 import { register } from "../services/core";
 
 function Register() {
+  const { token } = theme.useToken();
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
 
@@ -111,7 +112,7 @@ function Register() {
         </Form>
 
         <div style={{ textAlign: "center", marginTop: 16 }}>
-          <a href="/" style={{ color: "#1890ff" }}>
+          <a href="/" style={{ color: token.colorLink }}>
             已有账号？立即登录
           </a>
         </div>
