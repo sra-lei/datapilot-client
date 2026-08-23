@@ -57,3 +57,26 @@ export interface LLMStats {
   circuit_state: string;
   circuit_failures: number;
 }
+
+// ============ /v1/milvus/stats Milvus 集合监控 ============
+
+export interface MilvusIndexInfo {
+  index_name?: string;
+  field_name?: string;
+  index_type?: string;
+  metric_type?: string;
+}
+
+export interface MilvusCollectionStats {
+  name: string;
+  exists: boolean;
+  count: number;
+  dim: number | null;
+  index: MilvusIndexInfo | null;
+}
+
+export interface MilvusStats {
+  connected: boolean;
+  server_version: string;
+  collections: Record<string, MilvusCollectionStats>;
+}

@@ -11,4 +11,6 @@ export const DOCS_SEEKER_API = {
   HEALTH: "/v1/health",
   // 运行指标（语义缓存 + LLM 网关）
   STATS: "/v1/stats",
+  // Milvus 集合监控
+  MILVUS_STATS: "/v1/milvus/stats",
 } as const;
