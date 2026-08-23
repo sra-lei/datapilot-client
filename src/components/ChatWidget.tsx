@@ -9,12 +9,13 @@ import {
   MessageOutlined,
   MinusOutlined,
 } from "@ant-design/icons";
-import { Button, Input, Space } from "antd";
+import { Button, Input, Space, theme } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { chatStream } from "../services/docs-seeker";
 import type { ChatMessage } from "../types";
 
 function ChatWidget() {
+  const { token } = theme.useToken();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -119,7 +120,7 @@ function ChatWidget() {
         bottom: 24,
         width: 380,
         height: isMinimized ? 48 : 500,
-        background: "#fff",
+        background: token.colorBgContainer,
         borderRadius: 8,
         boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
         zIndex: 1000,
@@ -130,8 +131,8 @@ function ChatWidget() {
     >
       <div
         style={{
-          background: "#1890ff",
-          color: "#fff",
+          background: token.colorPrimary,
+          color: token.colorTextLightSolid,
           padding: "12px 16px",
           display: "flex",
           alignItems: "center",
@@ -148,7 +149,7 @@ function ChatWidget() {
           <Button
             type="text"
             icon={isMinimized ? <FullscreenOutlined /> : <MinusOutlined />}
-            style={{ color: "#fff", padding: 4 }}
+            style={{ color: token.colorTextLightSolid, padding: 4 }}
             onClick={(e) => {
               e.stopPropagation();
               setIsMinimized(!isMinimized);
@@ -157,7 +158,7 @@ function ChatWidget() {
           <Button
             type="text"
             icon={<CloseOutlined />}
-            style={{ color: "#fff", padding: 4 }}
+            style={{ color: token.colorTextLightSolid, padding: 4 }}
             onClick={(e) => {
               e.stopPropagation();
               setIsOpen(false);
@@ -174,7 +175,7 @@ function ChatWidget() {
               flex: 1,
               padding: 16,
               overflowY: "auto",
-              background: "#f5f5f5",
+              background: token.colorBgLayout,
             }}
           >
             {messages.length === 0 ? (
@@ -184,7 +185,7 @@ function ChatWidget() {
                   alignItems: "center",
                   justifyContent: "center",
                   height: "100%",
-                  color: "#999",
+                  color: token.colorTextTertiary,
                 }}
               >
                 <div style={{ textAlign: "center" }}>
@@ -210,8 +211,14 @@ function ChatWidget() {
                         maxWidth: "75%",
                         padding: "8px 12px",
                         borderRadius: 8,
-                        background: msg.sender === "user" ? "#1890ff" : "#fff",
-                        color: msg.sender === "user" ? "#fff" : "#333",
+                        background:
+                          msg.sender === "user"
+                            ? token.colorPrimary
+                            : token.colorBgContainer,
+                        color:
+                          msg.sender === "user"
+                            ? token.colorTextLightSolid
+                            : token.colorText,
                         boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
                       }}
                     >
@@ -239,8 +246,8 @@ function ChatWidget() {
           <div
             style={{
               padding: 12,
-              borderTop: "1px solid #f0f0f0",
-              background: "#fff",
+              borderTop: `1px solid ${token.colorSplit}`,
+              background: token.colorBgContainer,
             }}
           >
             <Input

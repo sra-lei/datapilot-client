@@ -271,7 +271,7 @@ function MilvusCollectionBlock({
         <Descriptions
           size="small"
           column={2}
-          labelStyle={{ width: 60, color: "#888" }}
+          labelStyle={{ width: 70, color: "#888" }}
           contentStyle={{ whiteSpace: "nowrap" }}
         >
           <Descriptions.Item label="向量维度">
@@ -620,7 +620,7 @@ function Dashboard() {
       </Row>
 
       <Row gutter={16}>
-        <Col xs={24} lg={12} style={{ marginBottom: 16 }}>
+        <Col xs={24} lg={12}>
           <MilvusMonitorPanel
             data={milvusData}
             loading={milvusLoading}
