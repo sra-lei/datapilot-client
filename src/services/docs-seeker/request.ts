@@ -12,8 +12,29 @@ interface DocsSeekerRequestConfig {
 }
 
 /**
- * 从本地存储读取当前登录用户 id（与 utils/request.ts 的 coreRequest 逻辑一致），
+ * 匿名用户标识：未登录时生成一个 uuid 并持久化到 localStorage，复用于 RAG 使用统计。
+ * 优先使用 crypto.randomUUID（secure context：https / localhost），不支持时降级随机串。
+ */
+function getAnonymousId(): string {
+  const KEY = "rag_anonymous_id";
+  try {
+    const existing = localStorage.getItem(KEY);
+    if (existing) return existing;
+    const id =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `anon-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(KEY, id);
+    return id;
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * 从本地存储读取当前用户 id（与 utils/request.ts 的 coreRequest 逻辑一致），
  * 附带在 X-User-ID 头中，供 docs-seeker 做 RAG 使用统计。
+ * 登录用户取真实 id；未登录（无需登录即可使用 chat）时生成/复用匿名 uuid。
  */
 function getCurrentUserId(): string | null {
   try {
@@ -23,9 +44,9 @@ function getCurrentUserId(): string | null {
       if (parsed.id != null) return String(parsed.id);
     }
   } catch {
-    // 本地存储解析失败时忽略，不附带该头
+    // 本地存储解析失败时忽略
   }
-  return null;
+  return getAnonymousId() || null;
 }
 
 export async function docsSeekerFetch<T = unknown>(

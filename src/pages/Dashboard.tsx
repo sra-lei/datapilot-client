@@ -18,7 +18,6 @@ import {
   Space,
   Spin,
   Statistic,
-  Table,
   Tag,
   Typography,
 } from "antd";
@@ -38,7 +37,6 @@ import type {
   MilvusCollectionStats,
   MilvusStats,
   UsageStats,
-  UsageUserStat,
 } from "../services/docs-seeker";
 
 const { Text } = Typography;
@@ -89,7 +87,7 @@ const fmt = (d: Date | null): string =>
   d ? d.toLocaleTimeString("zh-CN", { hour12: false }) : "--";
 
 // ===============================================================
-//  RAG 使用统计面板（按用户维度：次数 / 成功率 / 活跃用户 / Top）
+//  RAG 使用统计面板（总调用 / 成功率 / 活跃用户）
 // ===============================================================
 function RagUsagePanel({
   data,
@@ -101,29 +99,6 @@ function RagUsagePanel({
   onRefresh: () => void;
 }) {
   const successRate = parseFloat(data?.success_rate || "0") || 0;
-
-  const columns = [
-    { title: "用户", dataIndex: "user_id", key: "user_id" },
-    {
-      title: "调用次数",
-      dataIndex: "calls",
-      key: "calls",
-      render: (v: number) => (
-        <span style={{ fontWeight: 600, color: "#1890ff" }}>{v}</span>
-      ),
-      sorter: (a: UsageUserStat, b: UsageUserStat) => a.calls - b.calls,
-    },
-    {
-      title: "成功率",
-      dataIndex: "success_rate",
-      key: "success_rate",
-      render: (v: string) => {
-        const pct = parseFloat(v) || 0;
-        const color = pct >= 90 ? "#52c41a" : pct >= 70 ? "#faad14" : "#ff4d4f";
-        return <span style={{ color, fontWeight: 600 }}>{v}</span>;
-      },
-    },
-  ];
 
   return (
     <Card
@@ -145,7 +120,7 @@ function RagUsagePanel({
       }
     >
       <Spin spinning={loading}>
-        <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Row gutter={16} style={{ height: "100%", alignItems: "center" }}>
           <Col span={8}>
             <Statistic title="总调用次数" value={data?.total_calls ?? 0} />
           </Col>
@@ -160,14 +135,6 @@ function RagUsagePanel({
             <Statistic title="活跃用户" value={data?.active_users ?? 0} />
           </Col>
         </Row>
-        <Table
-          rowKey="user_id"
-          size="small"
-          columns={columns}
-          dataSource={data?.users ?? []}
-          pagination={false}
-          locale={{ emptyText: "暂无使用数据" }}
-        />
       </Spin>
     </Card>
   );
