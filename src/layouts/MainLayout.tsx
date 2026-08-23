@@ -3,8 +3,7 @@
  */
 
 import ChatWidget from "@/components/ChatWidget";
-import { THEME_PRESETS, getThemeConfig } from "@/config/theme";
-import type { ThemePreset } from "@/config/theme";
+import { getThemeConfig } from "@/config/theme";
 import {
   AuditOutlined,
   BarChartOutlined,
@@ -34,7 +33,6 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ThemeContext, getSavedPreset, savePresetKey } from "../contexts/ThemeContext";
 import { usePermission } from "../contexts/PermissionContext";
 
 const { Header, Sider, Content } = Layout;
@@ -46,16 +44,9 @@ function MainLayout() {
     const savedTheme = localStorage.getItem("theme");
     return savedTheme === "dark";
   });
-  // 主题预设（主色 + 图表分类色板）
-  const [preset, setPresetState] = useState<ThemePreset>(getSavedPreset);
   const navigate = useNavigate();
   const location = useLocation();
   const { can } = usePermission();
-
-  const setPreset = (p: ThemePreset) => {
-    setPresetState(p);
-    savePresetKey(p.key);
-  };
 
   // 主题切换
   useEffect(() => {
@@ -199,10 +190,7 @@ function MainLayout() {
   ];
 
   return (
-    <ThemeContext.Provider
-      value={{ isDarkMode, preset, setDarkMode: setIsDarkMode, setPreset }}
-    >
-      <ConfigProvider theme={getThemeConfig(isDarkMode, preset)}>
+    <ConfigProvider theme={getThemeConfig(isDarkMode)}>
       {/*
         外层 Layout 精准锁死视口尺寸（html/body/#root 也已经 overflow:hidden），
         让浏览器级滚动条彻底消失，解决"拉到底继续拉 → 白屏 overscroll"。
@@ -319,33 +307,6 @@ function MainLayout() {
             }}
           >
             <Space size="middle" style={{ marginRight: 16 }}>
-              <Tooltip title="主题色">
-                <Space size={6}>
-                  {THEME_PRESETS.map((p) => (
-                    <span
-                      key={p.key}
-                      title={p.name}
-                      onClick={() => setPreset(p)}
-                      style={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: "50%",
-                        background: p.colorPrimary,
-                        cursor: "pointer",
-                        display: "inline-block",
-                        border:
-                          preset.key === p.key
-                            ? "2px solid #fff"
-                            : "2px solid transparent",
-                        boxShadow:
-                          preset.key === p.key
-                            ? `0 0 0 2px ${p.colorPrimary}`
-                            : "none",
-                      }}
-                    />
-                  ))}
-                </Space>
-              </Tooltip>
               <Tooltip title={isDarkMode ? "切换到浅色模式" : "切换到深色模式"}>
                 <Switch
                   checked={isDarkMode}
@@ -382,8 +343,7 @@ function MainLayout() {
         </Layout>
         <ChatWidget />
       </Layout>
-      </ConfigProvider>
-    </ThemeContext.Provider>
+    </ConfigProvider>
   );
 }
 

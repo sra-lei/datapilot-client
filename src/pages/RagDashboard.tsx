@@ -69,7 +69,7 @@ function RagDashboard() {
 
   const { token } = theme.useToken();
 
-  // 分类颜色配置（基于主题 token，自动派生：事实查询随主色换肤联动，其余语义色稳定）
+  // 分类颜色配置（基于主题 token，随暗黑模式自适应）
   const categoryColors = useMemo<Record<string, string>>(
     () => ({
       事实查询: token.colorPrimary,
