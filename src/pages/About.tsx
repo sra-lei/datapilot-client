@@ -5,7 +5,7 @@
 import { config, ServerType } from "@/config";
 import { Card, Col, List, Row, Space, Typography } from "antd";
 
-const { Title, Paragraph, Text } = Typography;
+const { Paragraph, Text } = Typography;
 
 const coreUrl = config.servers[ServerType.CORE].url;
 

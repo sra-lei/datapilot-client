@@ -332,7 +332,7 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
 
     return (
       <Card size="small" bodyStyle={{ padding: 12 }}>
-        <Row gutter={[20, 12]} align="middle">
+        <Row gutter={[20, 12]} align="stretch">
           {/* 左列：紧凑上传区 + 下方状态摘要 */}
           <Col xs={24} md={10} lg={9}>
             <Spin spinning={healthLoading} tip="检测 doc-kit 服务状态...">
@@ -419,14 +419,18 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
             )}
           </Col>
 
-          {/* 右列：Steps 进度条（垂直布局，纵向居中与左列协调） */}
-          <Col xs={24} md={14} lg={15}>
+          {/* 右列：Steps 进度条（横排，容器高度与左列一致，内容垂直居中） */}
+          <Col
+            xs={24}
+            md={14}
+            lg={15}
+            style={{ display: "flex", alignItems: "center" }}
+          >
             <Steps
-              direction="vertical"
               current={currentIndex}
               status={stepStatus}
               size="small"
-              style={{ width: "100%", padding: "4px 0" }}
+              style={{ width: "100%" }}
               items={[
                 { title: INGEST_STEP_LABELS.parsing },
                 { title: INGEST_STEP_LABELS.chunking_embedding },
