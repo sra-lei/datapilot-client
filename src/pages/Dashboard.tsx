@@ -109,6 +109,7 @@ function RagUsagePanel({
           <DatabaseOutlined /> RAG 使用统计
         </>
       }
+      hoverable
       style={{ height: "100%" }}
       extra={
         <Button
@@ -321,6 +322,7 @@ function MilvusMonitorPanel({
           <DatabaseOutlined /> Milvus 监控
         </>
       }
+      hoverable
       style={{ height: "100%" }}
       extra={
         <Button
