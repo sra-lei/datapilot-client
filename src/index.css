@@ -53,3 +53,9 @@ code {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* DocIngest 入库记录列表：横向滚动条固定在列表区域底部（分页条上方），
+   避免无数据/少数据时滚动条浮在页面中部 */
+.dockit-ingest-table-scroll .ant-table-content {
+  min-height: 420px;
+}

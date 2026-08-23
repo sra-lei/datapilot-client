@@ -443,7 +443,10 @@ export default function DocIngest() {
           - Pagination 从 Table 内拆出来独立放在"组件下方"，横滚条正好在列表与分页之间，
             用户一眼就能看到，对齐"横向滚动条放在当前组件下方"的诉求。
         */}
-        <div style={{ maxHeight: 620, overflowY: "auto" }}>
+        <div
+          className="dockit-ingest-table-scroll"
+          style={{ maxHeight: 620, overflowY: "auto" }}
+        >
           <Table
             rowKey="document_id"
             loading={loading}
@@ -453,9 +456,21 @@ export default function DocIngest() {
             scroll={{ x: 1400 }}
             locale={{
               emptyText:
-                data.list.length === 0
-                  ? Empty.PRESENTED_IMAGE_SIMPLE
-                  : undefined,
+                data.list.length === 0 ? (
+                  <div
+                    style={{
+                      minHeight: 380,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Empty
+                      image={Empty.PRESENTED_IMAGE_SIMPLE}
+                      description="暂无入库记录"
+                    />
+                  </div>
+                ) : undefined,
             }}
             pagination={false}
             onRow={(r) => ({
