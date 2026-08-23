@@ -332,9 +332,9 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
 
     return (
       <Card size="small" bodyStyle={{ padding: 12 }}>
-        <Row gutter={[16, 12]} align="top">
-          {/* 左侧：紧凑上传区 */}
-          <Col xs={24} md={10} lg={8}>
+        <Row gutter={[20, 12]} align="middle">
+          {/* 左列：紧凑上传区 + 下方状态摘要 */}
+          <Col xs={24} md={10} lg={9}>
             <Spin spinning={healthLoading} tip="检测 doc-kit 服务状态...">
               <Upload.Dragger {...draggerProps}>
                 <p className="ant-upload-drag-icon" style={{ marginBottom: 0 }}>
@@ -353,87 +353,90 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                 ) : null}
               </Upload.Dragger>
             </Spin>
-          </Col>
 
-          {/* 右侧：状态摘要（一行 Tags，替代原先的大块 Descriptions） */}
-          <Col xs={24} md={14} lg={16}>
+            {/* 状态摘要：放在上传区下面 */}
             {statusData || stepError ? (
-              <Space wrap size={[8, 4]}>
-                {statusData?.task_id ? (
-                  <Tag color="blue" title={statusData.task_id}>
-                    {statusData.task_id.slice(0, 10)}…
-                  </Tag>
-                ) : null}
-                {statusData?.filename ? (
-                  <span style={{ fontSize: 12 }}>{statusData.filename}</span>
-                ) : null}
-                <Tag
-                  color={
-                    statusData?.status === "success"
-                      ? "green"
-                      : statusData?.status === "error" || stepError
-                        ? "red"
-                        : statusData?.status === "queued"
-                          ? "gold"
-                          : "blue"
-                  }
-                >
-                  {INGEST_STEP_LABELS[currentStepKey]}
-                </Tag>
-                {typeof statusData?.chunks_count === "number" ? (
-                  <span style={{ fontSize: 12, color: "#888" }}>
-                    原文 {statusData.chunks_count} 段
-                  </span>
-                ) : null}
-                {typeof statusData?.summary_count === "number" ? (
-                  <span style={{ fontSize: 12, color: "#888" }}>
-                    摘要 {statusData.summary_count} 段
-                  </span>
-                ) : null}
-                {statusData?.collection ? (
-                  <span style={{ fontSize: 12, color: "#888" }}>
-                    集合 {statusData.collection}
-                  </span>
-                ) : null}
-                {stepError ? (
-                  <span
-                    style={{
-                      fontSize: 12,
-                      color: "#ff4d4f",
-                      maxWidth: 360,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      verticalAlign: "middle",
-                    }}
-                    title={stepError}
+              <div style={{ marginTop: 12 }}>
+                <Space wrap size={[8, 4]}>
+                  {statusData?.task_id ? (
+                    <Tag color="blue" title={statusData.task_id}>
+                      {statusData.task_id.slice(0, 10)}…
+                    </Tag>
+                  ) : null}
+                  {statusData?.filename ? (
+                    <span style={{ fontSize: 12 }}>{statusData.filename}</span>
+                  ) : null}
+                  <Tag
+                    color={
+                      statusData?.status === "success"
+                        ? "green"
+                        : statusData?.status === "error" || stepError
+                          ? "red"
+                          : statusData?.status === "queued"
+                            ? "gold"
+                            : "blue"
+                    }
                   >
-                    {stepError}
-                  </span>
-                ) : null}
-              </Space>
+                    {INGEST_STEP_LABELS[currentStepKey]}
+                  </Tag>
+                  {typeof statusData?.chunks_count === "number" ? (
+                    <span style={{ fontSize: 12, color: "#888" }}>
+                      原文 {statusData.chunks_count} 段
+                    </span>
+                  ) : null}
+                  {typeof statusData?.summary_count === "number" ? (
+                    <span style={{ fontSize: 12, color: "#888" }}>
+                      摘要 {statusData.summary_count} 段
+                    </span>
+                  ) : null}
+                  {statusData?.collection ? (
+                    <span style={{ fontSize: 12, color: "#888" }}>
+                      集合 {statusData.collection}
+                    </span>
+                  ) : null}
+                  {stepError ? (
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: "#ff4d4f",
+                        maxWidth: 360,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        verticalAlign: "middle",
+                      }}
+                      title={stepError}
+                    >
+                      {stepError}
+                    </span>
+                  ) : null}
+                </Space>
+              </div>
             ) : (
-              <span style={{ fontSize: 12, color: "#888" }}>
+              <div style={{ marginTop: 12, fontSize: 12, color: "#888" }}>
                 上传 PDF 后自动解析、分块、向量化、摘要生成并入库 Milvus
-              </span>
+              </div>
             )}
           </Col>
-        </Row>
 
-        {/* 进度 Steps 全宽置于下方 */}
-        <Steps
-          current={currentIndex}
-          status={stepStatus}
-          size="small"
-          style={{ marginTop: 12 }}
-          items={[
-            { title: INGEST_STEP_LABELS.parsing },
-            { title: INGEST_STEP_LABELS.chunking_embedding },
-            { title: INGEST_STEP_LABELS.summarizing },
-            { title: INGEST_STEP_LABELS.storing },
-            { title: INGEST_STEP_LABELS.done },
-          ]}
-        />
+          {/* 右列：Steps 进度条（垂直布局，纵向居中与左列协调） */}
+          <Col xs={24} md={14} lg={15}>
+            <Steps
+              direction="vertical"
+              current={currentIndex}
+              status={stepStatus}
+              size="small"
+              style={{ width: "100%", padding: "4px 0" }}
+              items={[
+                { title: INGEST_STEP_LABELS.parsing },
+                { title: INGEST_STEP_LABELS.chunking_embedding },
+                { title: INGEST_STEP_LABELS.summarizing },
+                { title: INGEST_STEP_LABELS.storing },
+                { title: INGEST_STEP_LABELS.done },
+              ]}
+            />
+          </Col>
+        </Row>
       </Card>
     );
   },
