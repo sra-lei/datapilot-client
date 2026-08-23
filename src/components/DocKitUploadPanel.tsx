@@ -17,13 +17,14 @@ import { InboxOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd";
 import {
   Card,
-  Descriptions,
-  Divider,
-  message,
+  Col,
+  Row,
+  Space,
   Spin,
   Steps,
   Tag,
   Upload,
+  message,
 } from "antd";
 import {
   forwardRef,
@@ -330,33 +331,101 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
     };
 
     return (
-      <Card>
-        <Spin spinning={healthLoading} tip="检测 doc-kit 服务状态...">
-          <Upload.Dragger {...draggerProps}>
-            <p className="ant-upload-drag-icon">
-              <InboxOutlined />
-            </p>
-            <p className="ant-upload-text">
-              点击或拖拽 PDF 文件到此区域上传并入库
-            </p>
-            <p className="ant-upload-hint">
-              仅支持 .pdf，单文件上限
-              100MB。上传后自动解析、分块、向量化、摘要生成并入库 Milvus。
-            </p>
-            {healthDown ? (
-              <p style={{ color: "#ff4d4f", marginTop: 8 }}>
-                doc-kit 服务暂不可用，请稍后重试或联系运维
-              </p>
-            ) : null}
-          </Upload.Dragger>
-        </Spin>
+      <Card size="small" bodyStyle={{ padding: 12 }}>
+        <Row gutter={[16, 12]} align="top">
+          {/* 左侧：紧凑上传区 */}
+          <Col xs={24} md={10} lg={8}>
+            <Spin spinning={healthLoading} tip="检测 doc-kit 服务状态...">
+              <Upload.Dragger {...draggerProps}>
+                <p className="ant-upload-drag-icon" style={{ marginBottom: 0 }}>
+                  <InboxOutlined style={{ fontSize: 28 }} />
+                </p>
+                <p className="ant-upload-text" style={{ fontSize: 13 }}>
+                  点击或拖拽 PDF 文件上传
+                </p>
+                <p className="ant-upload-hint" style={{ fontSize: 12 }}>
+                  仅支持 .pdf，单文件上限 100MB
+                </p>
+                {healthDown ? (
+                  <p style={{ color: "#ff4d4f", marginTop: 4, fontSize: 12 }}>
+                    doc-kit 服务暂不可用，请稍后重试
+                  </p>
+                ) : null}
+              </Upload.Dragger>
+            </Spin>
+          </Col>
 
-        <Divider style={{ margin: "16px 0" }} />
+          {/* 右侧：状态摘要（一行 Tags，替代原先的大块 Descriptions） */}
+          <Col xs={24} md={14} lg={16}>
+            {statusData || stepError ? (
+              <Space wrap size={[8, 4]}>
+                {statusData?.task_id ? (
+                  <Tag color="blue" title={statusData.task_id}>
+                    {statusData.task_id.slice(0, 10)}…
+                  </Tag>
+                ) : null}
+                {statusData?.filename ? (
+                  <span style={{ fontSize: 12 }}>{statusData.filename}</span>
+                ) : null}
+                <Tag
+                  color={
+                    statusData?.status === "success"
+                      ? "green"
+                      : statusData?.status === "error" || stepError
+                        ? "red"
+                        : statusData?.status === "queued"
+                          ? "gold"
+                          : "blue"
+                  }
+                >
+                  {INGEST_STEP_LABELS[currentStepKey]}
+                </Tag>
+                {typeof statusData?.chunks_count === "number" ? (
+                  <span style={{ fontSize: 12, color: "#888" }}>
+                    原文 {statusData.chunks_count} 段
+                  </span>
+                ) : null}
+                {typeof statusData?.summary_count === "number" ? (
+                  <span style={{ fontSize: 12, color: "#888" }}>
+                    摘要 {statusData.summary_count} 段
+                  </span>
+                ) : null}
+                {statusData?.collection ? (
+                  <span style={{ fontSize: 12, color: "#888" }}>
+                    集合 {statusData.collection}
+                  </span>
+                ) : null}
+                {stepError ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: "#ff4d4f",
+                      maxWidth: 360,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      verticalAlign: "middle",
+                    }}
+                    title={stepError}
+                  >
+                    {stepError}
+                  </span>
+                ) : null}
+              </Space>
+            ) : (
+              <span style={{ fontSize: 12, color: "#888" }}>
+                上传 PDF 后自动解析、分块、向量化、摘要生成并入库 Milvus
+              </span>
+            )}
+          </Col>
+        </Row>
 
+        {/* 进度 Steps 全宽置于下方 */}
         <Steps
           current={currentIndex}
           status={stepStatus}
           size="small"
+          style={{ marginTop: 12 }}
           items={[
             { title: INGEST_STEP_LABELS.parsing },
             { title: INGEST_STEP_LABELS.chunking_embedding },
@@ -365,69 +434,6 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
             { title: INGEST_STEP_LABELS.done },
           ]}
         />
-
-        {statusData || stepError ? (
-          <Descriptions
-            size="small"
-            column={1}
-            style={{ marginTop: 12 }}
-            labelStyle={{ width: 120, color: "#888" }}
-          >
-            {statusData?.task_id ? (
-              <Descriptions.Item label="任务 ID">
-                <Tag color="blue">{statusData.task_id}</Tag>
-              </Descriptions.Item>
-            ) : null}
-            {statusData?.filename ? (
-              <Descriptions.Item label="文件名">
-                {statusData.filename}
-              </Descriptions.Item>
-            ) : null}
-            <Descriptions.Item label="状态">
-              <Tag
-                color={
-                  statusData?.status === "success"
-                    ? "green"
-                    : statusData?.status === "error" || stepError
-                      ? "red"
-                      : statusData?.status === "queued"
-                        ? "gold"
-                        : "blue"
-                }
-              >
-                {INGEST_STEP_LABELS[currentStepKey]}
-              </Tag>
-            </Descriptions.Item>
-            {statusData?.collection ? (
-              <Descriptions.Item label="原文集合">
-                {statusData.collection}
-              </Descriptions.Item>
-            ) : null}
-            {statusData?.summary_collection ? (
-              <Descriptions.Item label="摘要集合">
-                {statusData.summary_collection}
-              </Descriptions.Item>
-            ) : null}
-            {typeof statusData?.chunks_count === "number" ? (
-              <Descriptions.Item label="原文分块">
-                {statusData.chunks_count} 段
-              </Descriptions.Item>
-            ) : null}
-            {typeof statusData?.summary_count === "number" ? (
-              <Descriptions.Item label="摘要块数">
-                {statusData.summary_count} 段
-              </Descriptions.Item>
-            ) : null}
-            {stepError ? (
-              <Descriptions.Item
-                label="错误原因"
-                contentStyle={{ color: "#ff4d4f" }}
-              >
-                {stepError}
-              </Descriptions.Item>
-            ) : null}
-          </Descriptions>
-        ) : null}
       </Card>
     );
   },
