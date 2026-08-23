@@ -277,14 +277,6 @@ function EvalSets() {
       width: 250,
       render: (_: unknown, record: EvalSetListItem) => (
         <Space size={0} wrap>
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => goCases(record)}
-          >
-            用例
-          </Button>
           {canWrite && (
             <>
               <Button
