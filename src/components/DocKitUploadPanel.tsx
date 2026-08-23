@@ -1,4 +1,4 @@
-/**
+﻿/**
  * doc-kit 文档上传面板（可复用）
  * 负责：服务探活 → PDF 校验 → uploadAndIngest 提交 → task_id 轮询 → Steps 推进
  *
@@ -24,6 +24,7 @@ import {
   Tag,
   Upload,
   message,
+  theme,
 } from "antd";
 import {
   forwardRef,
@@ -97,6 +98,8 @@ function resolveCurrentStep(
 
 const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProps>(
   function DocKitUploadPanel({ onTaskComplete }, ref) {
+    // 主题 token：颜色随明暗模式自适应（暗黑模式下文字/边框自动切换为浅色系）
+    const { token } = theme.useToken();
     const [healthLoading, setHealthLoading] = useState(true);
     const [health, setHealth] = useState<DocKitHealthData | null>(null);
     const [healthDown, setHealthDown] = useState<boolean>(false);
@@ -372,7 +375,7 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                   仅支持 .pdf，单文件上限 100MB
                 </p>
                 {healthDown ? (
-                  <p style={{ color: "#ff4d4f", marginTop: 4, fontSize: 12 }}>
+                  <p style={{ color: token.colorError, marginTop: 4, fontSize: 12 }}>
                     doc-kit 服务暂不可用，请稍后重试
                   </p>
                 ) : null}
@@ -405,17 +408,17 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                     {INGEST_STEP_LABELS[currentStepKey]}
                   </Tag>
                   {typeof statusData?.chunks_count === "number" ? (
-                    <span style={{ fontSize: 12, color: "#888" }}>
+                    <span style={{ fontSize: 12, color: token.colorTextTertiary }}>
                       原文 {statusData.chunks_count} 段
                     </span>
                   ) : null}
                   {typeof statusData?.summary_count === "number" ? (
-                    <span style={{ fontSize: 12, color: "#888" }}>
+                    <span style={{ fontSize: 12, color: token.colorTextTertiary }}>
                       摘要 {statusData.summary_count} 段
                     </span>
                   ) : null}
                   {statusData?.collection ? (
-                    <span style={{ fontSize: 12, color: "#888" }}>
+                    <span style={{ fontSize: 12, color: token.colorTextTertiary }}>
                       集合 {statusData.collection}
                     </span>
                   ) : null}
@@ -423,7 +426,7 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                     <span
                       style={{
                         fontSize: 12,
-                        color: "#ff4d4f",
+                        color: token.colorError,
                         maxWidth: 360,
                         overflow: "hidden",
                         textOverflow: "ellipsis",
@@ -438,7 +441,7 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                 </Space>
               </div>
             ) : (
-              <div style={{ marginTop: 12, fontSize: 12, color: "#888" }}>
+              <div style={{ marginTop: 12, fontSize: 12, color: token.colorTextTertiary }}>
                 上传 PDF 后自动解析、分块、向量化、摘要生成并入库 Milvus
               </div>
             )}
@@ -465,10 +468,10 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                         fontSize: 12,
                         color:
                           st === "active" || st === "done"
-                            ? "#1677ff"
+                            ? token.colorPrimary
                             : st === "error"
-                              ? "#ff4d4f"
-                              : "rgba(0,0,0,0.45)",
+                              ? token.colorError
+                              : token.colorTextTertiary,
                         fontWeight:
                           st === "active" || st === "error" ? 600 : 400,
                       }}
@@ -486,36 +489,31 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                   marginTop: 8,
                 }}
               >
-                {/* 连接线：从首个圆点中心到末个圆点中心，按完成态分段着色 */}
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 11,
-                    left: "10%",
-                    right: "10%",
-                    height: 2,
-                    display: "flex",
-                  }}
-                >
-                  {STEP_ORDER.slice(0, -1).map((s, i) => (
-                    <div
-                      key={s.key}
-                      style={{
-                        flex: 1,
-                        background:
-                          stepState(i) === "done" ? "#1677ff" : "#d9d9d9",
-                      }}
-                    />
-                  ))}
-                </div>
+                {/* 连接线段：只绘制相邻圆点之间的空隙（不经过圆点下方，避免穿透） */}
+                {STEP_ORDER.slice(0, -1).map((s, i) => (
+                  <div
+                    key={s.key}
+                    style={{
+                      position: "absolute",
+                      top: 11,
+                      height: 2,
+                      left: `calc(${((i + 0.5) / STEP_ORDER.length) * 100}% + 13px)`,
+                      right: `calc(${(1 - (i + 1.5) / STEP_ORDER.length) * 100}% + 13px)`,
+                      background:
+                        stepState(i) === "done"
+                          ? token.colorPrimary
+                          : token.colorBorder,
+                    }}
+                  />
+                ))}
                 {STEP_ORDER.map((s, idx) => {
                   const st = stepState(idx);
                   const color =
                     st === "error"
-                      ? "#ff4d4f"
+                      ? token.colorError
                       : st === "wait"
-                        ? "#d9d9d9"
-                        : "#1677ff";
+                        ? token.colorBorder
+                        : token.colorPrimary;
                   return (
                     <div
                       key={s.key}
@@ -536,9 +534,11 @@ const DocKitUploadPanel = forwardRef<DocKitUploadPanelRef, DocKitUploadPanelProp
                           fontSize: 12,
                           lineHeight: 1,
                           color:
-                            st === "wait" ? "rgba(0,0,0,0.45)" : "#fff",
+                            st === "wait"
+                              ? token.colorTextTertiary
+                              : "#fff",
                           background:
-                            st === "wait" ? "rgba(0,0,0,0.04)" : color,
+                            st === "wait" ? token.colorFillTertiary : color,
                           border: `1px solid ${color}`,
                         }}
                       >
