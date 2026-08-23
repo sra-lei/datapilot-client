@@ -60,14 +60,15 @@ function Login() {
           boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
         }}
         title={
-          <div
-            style={{
-              textAlign: "center",
-              fontSize: "20px",
-              fontWeight: "bold",
-            }}
-          >
-            知行 InsightForge 管理系统
+          <div style={{ textAlign: "center" }}>
+            <img
+              src="/favicon.svg"
+              alt="logo"
+              style={{ width: 48, height: 48, marginBottom: 8 }}
+            />
+            <div style={{ fontSize: "20px", fontWeight: "bold" }}>
+              知行 InsightForge 管理系统
+            </div>
           </div>
         }
       >

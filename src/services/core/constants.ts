@@ -53,6 +53,16 @@ export const CORE_API = {
     STATS: '/core/database/stats',
   },
 
+  // 评估集管理相关
+  EVAL: {
+    SETS: '/core/eval/sets',
+    SET_DETAIL: (id: number) => `/core/eval/sets/${id}`,
+    SET_IMPORT: '/core/eval/sets/import',
+    SET_EXPORT: (id: number) => `/core/eval/sets/${id}/export`,
+    CASES: (id: number) => `/core/eval/sets/${id}/cases`,
+    CASE: (id: number) => `/core/eval/cases/${id}`,
+  },
+
   // 系统相关
   SYSTEM: {
     HEALTH: '/core/health',

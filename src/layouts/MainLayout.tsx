@@ -5,12 +5,16 @@
 import ChatWidget from "@/components/ChatWidget";
 import { getThemeConfig } from "@/config/theme";
 import {
+  AuditOutlined,
   BarChartOutlined,
   BulbOutlined,
   DashboardOutlined,
+  ExperimentOutlined,
   InboxOutlined,
   InfoCircleOutlined,
   LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
   UserOutlined,
@@ -35,6 +39,7 @@ const { Header, Sider, Content } = Layout;
 
 function MainLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [logoHovered, setLogoHovered] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
     return savedTheme === "dark";
@@ -57,16 +62,30 @@ function MainLayout() {
       permission: null, // 所有人可见
     },
     {
-      key: "/rag-dashboard",
-      icon: <BarChartOutlined />,
-      label: "RAG 看板",
+      key: "doc-eval-group",
+      icon: <ExperimentOutlined />,
+      label: "文档与评测",
       permission: null,
-    },
-    {
-      key: "/doc-ingest",
-      icon: <InboxOutlined />,
-      label: "文档入库",
-      permission: null,
+      children: [
+        {
+          key: "/rag-dashboard",
+          icon: <BarChartOutlined />,
+          label: "RAG 看板",
+          permission: null,
+        },
+        {
+          key: "/doc-ingest",
+          icon: <InboxOutlined />,
+          label: "文档入库",
+          permission: null,
+        },
+        {
+          key: "/eval-sets",
+          icon: <AuditOutlined />,
+          label: "评估集管理",
+          permission: { action: "read", subject: "Eval" },
+        },
+      ],
     },
     {
       key: "/users",
@@ -191,24 +210,75 @@ function MainLayout() {
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
+          trigger={null}
           style={{
             overflowY: "auto",
             overflowX: "hidden",
             overscrollBehavior: "contain",
           }}
         >
+          {/* 左上角 Logo 区：
+              展开时显示 知行（居左）+ 收起按钮（靠右），点击收起侧边栏；
+              收起时只显示 Logo 图标，悬停时替换为展开按钮，点击展开侧边栏 */}
           <div
             style={{
               height: 64,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
+              justifyContent: collapsed ? "center" : "flex-start",
+              paddingLeft: collapsed ? 0 : 16,
+              gap: 8,
               color: "white",
               fontSize: collapsed ? "16px" : "18px",
               fontWeight: "bold",
+              overflow: "hidden",
+              cursor: "pointer",
+              userSelect: "none",
+              background: logoHovered ? "rgba(255, 255, 255, 0.08)" : "transparent",
+              transition: "background 0.2s",
             }}
+            onMouseEnter={() => setLogoHovered(true)}
+            onMouseLeave={() => setLogoHovered(false)}
+            onClick={() => setCollapsed((c) => !c)}
+            title={collapsed ? "展开侧边栏" : "收起侧边栏"}
           >
-            {collapsed ? "知行" : "知行 InsightForge"}
+            {collapsed ? (
+              logoHovered ? (
+                <MenuUnfoldOutlined style={{ fontSize: 20 }} />
+              ) : (
+                <img
+                  src="/favicon.svg"
+                  alt="logo"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    flexShrink: 0,
+                  }}
+                />
+              )
+            ) : (
+              <>
+                <img
+                  src="/favicon.svg"
+                  alt="logo"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 6,
+                    flexShrink: 0,
+                  }}
+                />
+                <span style={{ whiteSpace: "nowrap" }}>知行</span>
+                <MenuFoldOutlined
+                  style={{
+                    fontSize: 16,
+                    marginLeft: "auto",
+                    marginRight: 16,
+                  }}
+                />
+              </>
+            )}
           </div>
           <Menu
             theme="dark"

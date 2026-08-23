@@ -7,7 +7,7 @@ export interface UserInfo {
   id: number;
   username: string;
   email: string | null;
-  status: "active" | "inactive" | "deleted";
+  status: 'active' | 'inactive' | 'deleted';
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +33,7 @@ export interface ChangePasswordParams {
 
 export interface UpdateUserStatusParams {
   userId: number;
-  status: "active" | "inactive";
+  status: 'active' | 'inactive';
 }
 
 // 权限相关类型
@@ -94,5 +94,75 @@ export interface DatabaseStats {
   dbFilePath: string;
 }
 
+// ============ 评估集管理类型 ============
+
+// 状态：normal=正常（默认）/ disabled=禁用（评测跳过）/ deleted=已删除（软删除）
+export type EvalStatus = 'normal' | 'disabled' | 'deleted';
+
+export interface EvalSet {
+  id: number;
+  name: string;
+  description: string | null;
+  doc_scope: string | null;
+  status: EvalStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface EvalCase {
+  id: number;
+  set_id: number;
+  case_id: string;
+  question: string;
+  expected_chapter: string | null;
+  expected_keywords: string[];
+  category: string;
+  sort_order: number;
+  status: EvalStatus;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// 用例输入（兼容示例数据格式，用于导入/导出）
+export interface EvalCaseInput {
+  id: string;
+  question: string;
+  expected_chapter?: string | null;
+  expected_keywords: string[];
+  category: string;
+  sort_order?: number;
+}
+
+// 评估集列表项（含统计）
+export interface EvalSetListItem extends EvalSet {
+  case_count: number;
+  category_stats: Record<string, number>;
+}
+
+// 评估集详情（含全部用例）
+export interface EvalSetDetail {
+  set: EvalSet;
+  cases: EvalCase[];
+}
+
+export interface EvalCaseImportFailure {
+  index: number;
+  id?: string;
+  reason: string;
+}
+
+export interface EvalCaseImportResult {
+  total: number;
+  inserted: number;
+  skipped: number;
+  restored: number;
+  failures: EvalCaseImportFailure[];
+}
+
+export interface EvalSetImportData {
+  set: EvalSet;
+  import_result: EvalCaseImportResult;
+}
+
 // 重新导出公共类型
-export type { ApiResponse } from "../types";
+export type { ApiResponse } from '../types';

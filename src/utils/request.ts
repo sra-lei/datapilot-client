@@ -185,13 +185,38 @@ export async function request<T = unknown>(
 }
 
 /**
+ * 从本地存储读取当前登录用户 id
+ * 后端 requirePermission 中间件依赖请求头 x-user-id 校验登录态与权限，
+ * 由 coreRequest 自动附带，调用方无需手写。
+ */
+function getCurrentUserId(): string | null {
+  try {
+    const raw = localStorage.getItem("currentUser") || localStorage.getItem("user");
+    if (raw) {
+      const parsed = JSON.parse(raw) as { id?: unknown };
+      if (parsed.id != null) return String(parsed.id);
+    }
+  } catch {
+    // 本地存储解析失败时忽略，不附带该头
+  }
+  return null;
+}
+
+/**
  * Core Service 请求（Node.js Server）
  */
 export const coreRequest = async <T = unknown>(
   path: string,
   config: InternalRequestConfig = {},
 ): Promise<ApiResponse<T>> => {
-  return request<T>(ServerType.CORE, path, config);
+  const headers = { ...(config.headers ?? {}) };
+  if (!headers["x-user-id"]) {
+    const userId = getCurrentUserId();
+    if (userId) {
+      headers["x-user-id"] = userId;
+    }
+  }
+  return request<T>(ServerType.CORE, path, { ...config, headers });
 };
 
 /**
