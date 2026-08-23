@@ -54,6 +54,26 @@ code {
   background: transparent;
 }
 
+/* 客服对话窗口消息区：纵向滚动条常驻可见，方便回看历史记录 */
+.chat-widget-scroll {
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.3) transparent;
+}
+.chat-widget-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.chat-widget-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+.chat-widget-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+.chat-widget-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 /* DocIngest 入库记录列表：横向滚动条固定在列表区域底部（分页条上方），
    避免无数据/少数据时滚动条浮在页面中部 */
 .dockit-ingest-table-scroll .ant-table-content {

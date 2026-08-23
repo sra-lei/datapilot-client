@@ -8,6 +8,7 @@ import {
   LoadingOutlined,
   MessageOutlined,
   MinusOutlined,
+  SendOutlined,
 } from "@ant-design/icons";
 import { Button, Input, Space, theme } from "antd";
 import { useEffect, useRef, useState } from "react";
@@ -118,8 +119,8 @@ function ChatWidget() {
         position: "fixed",
         right: 24,
         bottom: 24,
-        width: 380,
-        height: isMinimized ? 48 : 500,
+        width: 456,
+        height: isMinimized ? 58 : 600,
         background: token.colorBgContainer,
         borderRadius: 8,
         boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
@@ -133,7 +134,7 @@ function ChatWidget() {
         style={{
           background: token.colorPrimary,
           color: token.colorTextLightSolid,
-          padding: "12px 16px",
+          padding: "9px 16px",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -148,6 +149,7 @@ function ChatWidget() {
         <Space>
           <Button
             type="text"
+            size="small"
             icon={isMinimized ? <FullscreenOutlined /> : <MinusOutlined />}
             style={{ color: token.colorTextLightSolid, padding: 4 }}
             onClick={(e) => {
@@ -157,6 +159,7 @@ function ChatWidget() {
           />
           <Button
             type="text"
+            size="small"
             icon={<CloseOutlined />}
             style={{ color: token.colorTextLightSolid, padding: 4 }}
             onClick={(e) => {
@@ -171,10 +174,11 @@ function ChatWidget() {
       {!isMinimized && (
         <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
           <div
+            className="chat-widget-scroll"
             style={{
               flex: 1,
               padding: 16,
-              overflowY: "auto",
+              overflowY: "scroll",
               background: token.colorBgLayout,
             }}
           >
@@ -255,15 +259,27 @@ function ChatWidget() {
               onChange={(e) => setInputValue(e.target.value)}
               onPressEnter={handleKeyPress}
               placeholder="输入消息..."
-              style={{ marginBottom: 8 }}
-              allowClear
               disabled={isLoading}
+              suffix={
+                <span
+                  onClick={handleSend}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    cursor: isLoading ? "default" : "pointer",
+                    color: isLoading
+                      ? token.colorTextDisabled
+                      : token.colorPrimary,
+                  }}
+                >
+                  {isLoading ? (
+                    <LoadingOutlined style={{ fontSize: 14 }} />
+                  ) : (
+                    <SendOutlined style={{ fontSize: 14 }} />
+                  )}
+                </span>
+              }
             />
-            <Space style={{ justifyContent: "flex-end", width: "100%" }}>
-              <Button onClick={handleSend} type="primary" disabled={isLoading}>
-                {isLoading ? <LoadingOutlined /> : "发送"}
-              </Button>
-            </Space>
           </div>
         </div>
       )}
