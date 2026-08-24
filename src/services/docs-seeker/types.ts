@@ -96,3 +96,11 @@ export interface UsageStats {
   active_users: number;
   users: UsageUserStat[];
 }
+
+// ============ /v1/usage/top 热门问题 ============
+
+export interface UsageTopQuestion {
+  question: string;
+  count: number;
+  cached: boolean;
+}

@@ -4,7 +4,7 @@
 import type { ApiResponse } from "../types";
 import { DOCS_SEEKER_API } from "./constants";
 import { docsSeekerFetch } from "./request";
-import type { UsageStats } from "./types";
+import type { UsageStats, UsageTopQuestion } from "./types";
 
 /**
  * 获取 RAG 使用统计（总次数 / 成功率 / 活跃用户 / 用户 Top）
@@ -14,6 +14,24 @@ export async function getRagUsageStats(): Promise<ApiResponse<UsageStats>> {
     const data = await docsSeekerFetch<UsageStats>(DOCS_SEEKER_API.USAGE_STATS, {
       timeout: 15000,
     });
+    return { success: true, status: 200, code: 200, data };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    return { success: false, status: 500, code: 500, message: msg, msg, data: undefined };
+  }
+}
+
+/**
+ * 获取热门问题 TopN（ChatWidget 欢迎语 / 预热用）
+ */
+export async function getTopQuestions(
+  limit = 10,
+): Promise<ApiResponse<{ questions: UsageTopQuestion[] }>> {
+  try {
+    const data = await docsSeekerFetch<{ questions: UsageTopQuestion[] }>(
+      `${DOCS_SEEKER_API.USAGE_TOP}?limit=${limit}`,
+      { timeout: 20000 },
+    );
     return { success: true, status: 200, code: 200, data };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);

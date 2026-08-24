@@ -12,7 +12,8 @@ import {
 } from "@ant-design/icons";
 import { Button, Input, Space, theme } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { chatStream } from "../services/docs-seeker";
+import { chatStream, getTopQuestions } from "../services/docs-seeker";
+import type { UsageTopQuestion } from "../services/docs-seeker";
 import type { ChatMessage } from "../types";
 
 function ChatWidget() {
@@ -22,6 +23,7 @@ function ChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [topQuestions, setTopQuestions] = useState<UsageTopQuestion[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,18 +32,33 @@ function ChatWidget() {
     }
   }, [messages, isOpen, isMinimized]);
 
-  const handleSend = async () => {
-    if (!inputValue.trim() || isLoading) return;
+  // 打开时拉取热门问题（欢迎语快捷按钮）
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    void (async () => {
+      const r = await getTopQuestions(6);
+      if (!cancelled && r.success && r.data) {
+        setTopQuestions(r.data.questions);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
+
+  const handleSend = async (questionText?: string) => {
+    const question = (questionText ?? inputValue).trim();
+    if (!question || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now(),
       sender: "user",
-      content: inputValue.trim(),
+      content: question,
       timestamp: new Date().toLocaleTimeString("zh-CN"),
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    const question = inputValue.trim();
     setInputValue("");
     setIsLoading(true);
 
@@ -192,11 +209,36 @@ function ChatWidget() {
                   color: token.colorTextTertiary,
                 }}
               >
-                <div style={{ textAlign: "center" }}>
+                <div style={{ textAlign: "center", width: "100%" }}>
                   <MessageOutlined
                     style={{ fontSize: 48, marginBottom: 8, opacity: 0.5 }}
                   />
                   <p>您好，有什么可以帮您？</p>
+                  {topQuestions.length > 0 && (
+                    <div style={{ marginTop: 12, padding: "0 12px" }}>
+                      <div style={{ fontSize: 12, marginBottom: 8 }}>
+                        大家都在问：
+                      </div>
+                      <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                        {topQuestions.map((tq) => (
+                          <Button
+                            key={tq.question}
+                            size="small"
+                            block
+                            onClick={() => void handleSend(tq.question)}
+                            style={{
+                              textAlign: "left",
+                              whiteSpace: "normal",
+                              height: "auto",
+                              padding: "6px 12px",
+                            }}
+                          >
+                            {tq.question}
+                          </Button>
+                        ))}
+                      </Space>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -262,7 +304,7 @@ function ChatWidget() {
               disabled={isLoading}
               suffix={
                 <span
-                  onClick={handleSend}
+                  onClick={() => void handleSend()}
                   style={{
                     display: "inline-flex",
                     alignItems: "center",

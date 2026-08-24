@@ -7,7 +7,6 @@ import {
   AuditOutlined,
   DeleteOutlined,
   EditOutlined,
-  EyeOutlined,
   FileAddOutlined,
   PlayCircleOutlined,
   PlusOutlined,

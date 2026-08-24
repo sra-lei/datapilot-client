@@ -15,4 +15,6 @@ export const DOCS_SEEKER_API = {
   MILVUS_STATS: "/v1/milvus/stats",
   // RAG 使用统计（按用户）
   USAGE_STATS: "/v1/usage/stats",
+  // 热门问题 TopN（ChatWidget 欢迎语 / 预热）
+  USAGE_TOP: "/v1/usage/top",
 } as const;
