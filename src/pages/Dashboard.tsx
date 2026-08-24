@@ -23,18 +23,20 @@ import {
   theme,
 } from "antd";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
-import { checkCoreHealth } from "../services/core";
+import { useEffect, useState } from "react";import { checkCoreHealth } from "../services/core";
 import type { DocKitHealthData } from "../services/doc-kit";
 import { getDocKitHealth } from "../services/doc-kit";
 import {
   checkDocsSeekerHealth,
   getCacheStats,
+  getGatewayStats,
   getMilvusStats,
   getRagUsageStats,
+  getSemanticCacheStats,
 } from "../services/docs-seeker";
 import type {
   CacheStats,
+  LLMStats,
   MilvusCollectionStats,
   MilvusStats,
   UsageStats,
@@ -45,7 +47,8 @@ const { Text } = Typography;
 // ---------------------------------------------------------------
 //  三卡共享的设计 tokens（单一基准，避免 inline 零散重复）
 // ---------------------------------------------------------------
-const cardStyle = { minHeight: 400, height: "100%" } as const;
+// 顶部三张服务概览卡：高度缩小 1/5（400 → 320），内容更紧凑
+const cardStyle = { minHeight: 320, height: "100%" } as const;
 const descriptionsConfig = {
   size: "small" as const,
   column: 1,
@@ -88,19 +91,91 @@ const fmt = (d: Date | null): string =>
   d ? d.toLocaleTimeString("zh-CN", { hour12: false }) : "--";
 
 // ===============================================================
-//  RAG 使用统计面板（总调用 / 成功率 / 活跃用户）
+//  RAG 使用统计面板
+//  顶部：总调用 / 成功率 / 活跃用户；
+//  下方一排三列：缓存统计 | 网关状态 | 语义缓存（紧凑内嵌卡，左右对齐指标行）
 // ===============================================================
+/** 紧凑指标行：label 居左、value 居右对齐 */
+function MetricRow({
+  label,
+  value,
+  valueColor,
+}: {
+  label: string;
+  value: ReactNode;
+  valueColor?: string;
+}) {
+  const { token } = theme.useToken();
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "3px 0",
+      }}
+    >
+      <span style={{ color: token.colorTextSecondary, fontSize: 13 }}>{label}</span>
+      <span
+        style={{
+          fontSize: 14,
+          fontWeight: 700,
+          color: valueColor ?? token.colorText,
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/** 上下结构指标块：次数在上、文字在下，居中 */
+function MetricBlock({
+  label,
+  value,
+  valueColor,
+}: {
+  label: string;
+  value: ReactNode;
+  valueColor?: string;
+}) {
+  const { token } = theme.useToken();
+  return (
+    <div style={{ textAlign: "center", flex: 1, minWidth: 0 }}>
+      <div
+        style={{
+          fontSize: 16,
+          fontWeight: 700,
+          color: valueColor ?? token.colorText,
+          lineHeight: 1.3,
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ fontSize: 12, color: token.colorTextSecondary }}>
+        {label}
+      </div>
+    </div>
+  );
+}
+
 function RagUsagePanel({
-  data,
+  usage,
+  cache,
+  gateway,
+  semantic,
   loading,
   onRefresh,
 }: {
-  data: UsageStats | null;
+  usage: UsageStats | null;
+  cache: CacheStats | null;
+  gateway: LLMStats | null;
+  semantic: CacheStats | null;
   loading: boolean;
   onRefresh: () => void;
 }) {
   const { token } = theme.useToken();
-  const successRate = parseFloat(data?.success_rate || "0") || 0;
+  const successRate = parseFloat(usage?.success_rate || "0") || 0;
 
   return (
     <Card
@@ -123,21 +198,133 @@ function RagUsagePanel({
       }
     >
       <Spin spinning={loading}>
-        <Row gutter={16} style={{ height: "100%", alignItems: "center" }}>
+        {/* 使用统计 */}
+        <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={8}>
-            <Statistic title="总调用次数" value={data?.total_calls ?? 0} />
+            <Statistic title="总调用次数" value={usage?.total_calls ?? 0} />
           </Col>
           <Col span={8}>
             <Statistic
               title="成功率"
-              value={data?.success_rate ?? "0.0%"}
+              value={usage?.success_rate ?? "0.0%"}
               valueStyle={{
                 color: successRate >= 90 ? token.colorSuccess : token.colorWarning,
               }}
             />
           </Col>
           <Col span={8}>
-            <Statistic title="活跃用户" value={data?.active_users ?? 0} />
+            <Statistic title="活跃用户" value={usage?.active_users ?? 0} />
+          </Col>
+        </Row>
+
+        {/* 缓存统计 / 网关状态 / 语义缓存 —— 一排三列 */}
+        <Row gutter={16}>
+          {/* 缓存统计 */}
+          <Col xs={24} md={8}>
+            <Card type="inner" size="small" title="缓存统计" style={{ height: "100%" }}>
+              {cache ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <CacheHitRing rate={cache.hit_rate} />
+                  <div style={{ flex: 1 }}>
+                    <MetricRow
+                      label="命中"
+                      value={cache.hits}
+                      valueColor={token.colorSuccess}
+                    />
+                    <MetricRow
+                      label="未命中"
+                      value={cache.misses}
+                      valueColor={token.colorError}
+                    />
+                    <MetricRow
+                      label="累计请求"
+                      value={cache.hits + cache.misses}
+                      valueColor={token.colorPrimary}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <span style={{ color: token.colorTextQuaternary }}>暂无缓存数据</span>
+              )}
+            </Card>
+          </Col>
+
+          {/* 网关状态 */}
+          <Col xs={24} md={8}>
+            <Card type="inner" size="small" title="网关状态" style={{ height: "100%" }}>
+              {gateway ? (
+                <>
+                  <div style={{ marginBottom: 6 }}>
+                    <Tag
+                      color={
+                        gateway.circuit_state === "closed"
+                          ? "success"
+                          : gateway.circuit_state === "open"
+                            ? "error"
+                            : "warning"
+                      }
+                    >
+                      {gateway.circuit_state === "closed"
+                        ? "熔断器：正常"
+                        : gateway.circuit_state === "open"
+                          ? "熔断器：熔断"
+                          : "熔断器：半开"}
+                    </Tag>
+                  </div>
+                  {/* 调用/成功/备用/失败：次数在上、文字在下（上下结构），禁止换行保持一行 */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 4,
+                      flexWrap: "nowrap",
+                      paddingTop: 4,
+                    }}
+                  >
+                    <MetricBlock label="调用" value={gateway.total_calls} />
+                    <MetricBlock
+                      label="成功"
+                      value={gateway.success_calls}
+                      valueColor={token.colorSuccess}
+                    />
+                    <MetricBlock label="备用" value={gateway.fallback_calls} />
+                    <MetricBlock
+                      label="失败"
+                      value={gateway.circuit_failures}
+                      valueColor={token.colorError}
+                    />
+                  </div>
+                </>
+              ) : (
+                <span style={{ color: token.colorTextQuaternary }}>暂无网关数据</span>
+              )}
+            </Card>
+          </Col>
+
+          {/* 语义缓存（命中率等同缓存统计，仅展示差异字段） */}
+          <Col xs={24} md={8}>
+            <Card type="inner" size="small" title="语义缓存" style={{ height: "100%" }}>
+              {semantic ? (
+                <>
+                  <div style={{ marginBottom: 6 }}>
+                    <Tag color={semantic.enabled === false ? "default" : "success"}>
+                      启用：{semantic.enabled === false ? "关闭" : "开启"}
+                    </Tag>
+                  </div>
+                  <MetricRow
+                    label="命中率"
+                    value={semantic.hit_rate}
+                    valueColor={token.colorPrimary}
+                  />
+                  <MetricRow
+                    label="相似度阈值"
+                    value={semantic.threshold ?? "--"}
+                  />
+                </>
+              ) : (
+                <span style={{ color: token.colorTextQuaternary }}>暂无语义缓存数据</span>
+              )}
+            </Card>
           </Col>
         </Row>
       </Spin>
@@ -145,7 +332,7 @@ function RagUsagePanel({
   );
 }
 
-// 缓存统计的环形图（保留原 SVG 实现，但封装 + 居中）
+// 缓存/语义缓存命中率环形图（纯圆环 + 中心文字）
 function CacheHitRing({ rate }: { rate: string }) {
   const { token } = theme.useToken();
   const pct = parseFloat(rate) || 0;
@@ -158,95 +345,53 @@ function CacheHitRing({ rate }: { rate: string }) {
   const R = 30;
   const C = 2 * Math.PI * R;
   return (
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 16,
-        width: "100%",
-      }}
-    >
-      <div
-        style={{ position: "relative", width: 80, height: 80, flexShrink: 0 }}
-      >
-        <svg width="80" height="80" viewBox="0 0 80 80">
-          <circle
-            cx="40"
-            cy="40"
-            r={R}
-            fill="none"
-            stroke={token.colorBorderSecondary}
-            strokeWidth={6}
-          />
-          <circle
-            cx="40"
-            cy="40"
-            r={R}
-            fill="none"
-            stroke={color}
-            strokeWidth={6}
-            strokeLinecap="round"
-            transform="rotate(-90 40 40)"
-            style={{
-              strokeDasharray: `${(pct / 100) * C} ${C}`,
-              transition: "stroke-dasharray 0.5s ease",
-            }}
-          />
-        </svg>
-        <div
+    <div style={{ position: "relative", width: 80, height: 80, flexShrink: 0 }}>
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle
+          cx="40"
+          cy="40"
+          r={R}
+          fill="none"
+          stroke={token.colorBorderSecondary}
+          strokeWidth={6}
+        />
+        <circle
+          cx="40"
+          cy="40"
+          r={R}
+          fill="none"
+          stroke={color}
+          strokeWidth={6}
+          strokeLinecap="round"
+          transform="rotate(-90 40 40)"
           style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
+            strokeDasharray: `${(pct / 100) * C} ${C}`,
+            transition: "stroke-dasharray 0.5s ease",
           }}
-        >
-          <div
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: token.colorPrimary,
-              lineHeight: 1.2,
-            }}
-          >
-            {isNaN(pct) ? "--" : rate}
-          </div>
-          <div style={{ fontSize: 10, color: token.colorTextSecondary }}>命中率</div>
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 20, flex: 1, flexWrap: "wrap" }}>
-        <StatCell label="命中" value={null} valueColor={token.colorSuccess} />
-        <StatCell label="未命中" value={null} valueColor={token.colorError} />
-        <StatCell label="缓存量" value={null} valueColor={token.colorPrimary} />
-      </div>
-    </div>
-  );
-}
-
-function StatCell({
-  label,
-  value,
-  valueColor,
-}: {
-  label: string;
-  value: ReactNode;
-  valueColor?: string;
-}) {
-  const { token } = theme.useToken();
-  return (
-    <div style={{ textAlign: "center" }}>
+        />
+      </svg>
       <div
         style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: valueColor ?? "inherit",
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
-        {value ?? "--"}
+        <div
+          style={{
+            fontSize: 16,
+            fontWeight: 700,
+            color: token.colorPrimary,
+            lineHeight: 1.2,
+          }}
+        >
+          {isNaN(pct) ? "--" : rate}
+        </div>
+        <div style={{ fontSize: 10, color: token.colorTextSecondary }}>命中率</div>
       </div>
-      <div style={{ fontSize: 10, color: token.colorTextSecondary }}>{label}</div>
     </div>
   );
 }
@@ -403,9 +548,11 @@ function Dashboard() {
   const [milvusData, setMilvusData] = useState<MilvusStats | null>(null);
   const [milvusLoading, setMilvusLoading] = useState(false);
 
-  // ------- RAG 使用统计 -------
+  // ------- RAG 使用统计（含缓存 / 网关 / 语义缓存，合并自原系统状态页） -------
   const [usageData, setUsageData] = useState<UsageStats | null>(null);
-  const [usageLoading, setUsageLoading] = useState(false);
+  const [gatewayData, setGatewayData] = useState<LLMStats | null>(null);
+  const [semanticData, setSemanticData] = useState<CacheStats | null>(null);
+  const [ragLoading, setRagLoading] = useState(false);
 
   // ------- 刷新函数 -------
   const refreshCore = async () => {
@@ -430,14 +577,6 @@ function Dashboard() {
     } finally {
       setCmDown(down);
       setCmLastCheck(new Date());
-    }
-    // 缓存统计：成功与否都不影响 checking 收尾
-    try {
-      const sr = await getCacheStats();
-      if (sr.success && sr.data) setCacheStats(sr.data);
-    } catch {
-      /* ignore */
-    } finally {
       setCmChecking(false);
     }
   };
@@ -469,15 +608,24 @@ function Dashboard() {
     }
   };
 
-  const refreshUsage = async () => {
-    setUsageLoading(true);
+  // RAG 使用统计卡片整体刷新：使用统计 + 缓存 + 网关 + 语义缓存（合并自原系统状态页）
+  const refreshRag = async () => {
+    setRagLoading(true);
     try {
-      const r = await getRagUsageStats();
-      if (r.success && r.data) setUsageData(r.data);
+      const [u, c, g, s] = await Promise.all([
+        getRagUsageStats(),
+        getCacheStats(),
+        getGatewayStats(),
+        getSemanticCacheStats(),
+      ]);
+      if (u.success && u.data) setUsageData(u.data);
+      if (c.success && c.data) setCacheStats(c.data);
+      if (g.success && g.data) setGatewayData(g.data);
+      if (s.success && s.data) setSemanticData(s.data);
     } catch {
       /* ignore */
     } finally {
-      setUsageLoading(false);
+      setRagLoading(false);
     }
   };
 
@@ -486,7 +634,7 @@ function Dashboard() {
     void refreshChartermate();
     void refreshDockit();
     void refreshMilvus();
-    void refreshUsage();
+    void refreshRag();
   }, []);
 
   // ===============================================================
@@ -571,32 +719,6 @@ function Dashboard() {
                 <Descriptions.Item label="最后检查">
                   {fmt(cmLastCheck)}
                 </Descriptions.Item>
-                <Descriptions.Item label="缓存统计">
-                  {cacheStats ? (
-                    <CacheHitRing rate={cacheStats.hit_rate} />
-                  ) : (
-                    <span style={{ color: token.colorTextQuaternary }}>暂无缓存数据</span>
-                  )}
-                </Descriptions.Item>
-                {cacheStats ? (
-                  <>
-                    <Descriptions.Item label="命中">
-                      <span style={{ color: token.colorSuccess, fontWeight: 700 }}>
-                        {cacheStats.hits}
-                      </span>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="未命中">
-                      <span style={{ color: token.colorError, fontWeight: 700 }}>
-                        {cacheStats.misses}
-                      </span>
-                    </Descriptions.Item>
-                    <Descriptions.Item label="累计请求">
-                      <span style={{ color: token.colorPrimary, fontWeight: 700 }}>
-                        {cacheStats.hits + cacheStats.misses}
-                      </span>
-                    </Descriptions.Item>
-                  </>
-                ) : null}
               </Descriptions>
             </Spin>
           </Card>
@@ -669,9 +791,12 @@ function Dashboard() {
         </Col>
         <Col xs={24} lg={12}>
           <RagUsagePanel
-            data={usageData}
-            loading={usageLoading}
-            onRefresh={() => void refreshUsage()}
+            usage={usageData}
+            cache={cacheStats}
+            gateway={gatewayData}
+            semantic={semanticData}
+            loading={ragLoading}
+            onRefresh={() => void refreshRag()}
           />
         </Col>
       </Row>

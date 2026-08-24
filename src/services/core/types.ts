@@ -232,5 +232,81 @@ export interface EvalStatsData {
   latest: EvalReport | null;
 }
 
+// ============ 评估运行（结果入库，Core /core/eval/runs 提供） ============
+
+// 运行历史列表项
+export interface EvalRunListItem {
+  id: number;
+  set_id: number | null;
+  set_name: string | null;
+  doc_scope: string | null;
+  status: string;
+  timestamp: string | null;
+  total: number;
+  passed: number;
+  avg_score: number;
+  avg_elapsed: number;
+  pass_rate: string | null;
+  category_stats: Record<string, CategoryStat>;
+  failed_cases: FailedCase[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+// 运行-用例明细
+export interface EvalRunCaseItem {
+  id: number;
+  case_id: string;
+  question: string;
+  score: number | null;
+  elapsed: number | null;
+  keywords_found: string[];
+  keyword_count: number;
+  source_count: number;
+  has_answer: boolean;
+  chapter_match: boolean | null;
+  answer_preview: string | null;
+  error: string | null;
+}
+
+// 单次运行详情
+export interface EvalRunDetail extends EvalRunListItem {
+  cases: EvalRunCaseItem[];
+}
+
+// 运行历史分页响应
+export interface EvalRunListData {
+  list: EvalRunListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// 批量导入逐份结果
+export interface EvalRunImportItemResult {
+  index: number;
+  run_id?: number;
+  reason?: string;
+}
+
+// 批量导入汇总结果
+export interface EvalRunImportResult {
+  total: number;
+  inserted: number;
+  failures: EvalRunImportItemResult[];
+}
+
+// 在线运行评估集的结果摘要
+export interface EvalRunSetResult {
+  run_id: number;
+  set_id: number;
+  set_name: string;
+  total: number;
+  passed: number;
+  avg_score: number;
+  avg_elapsed: number;
+  failed_count: number;
+}
+
 // 重新导出公共类型
 export type { ApiResponse } from '../types';

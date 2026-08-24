@@ -10,6 +10,7 @@ import {
   BulbOutlined,
   DashboardOutlined,
   ExperimentOutlined,
+  HistoryOutlined,
   InboxOutlined,
   InfoCircleOutlined,
   LogoutOutlined,
@@ -68,15 +69,15 @@ function MainLayout() {
       permission: null,
       children: [
         {
-          key: "/rag-dashboard",
-          icon: <BarChartOutlined />,
-          label: "RAG 看板",
-          permission: null,
-        },
-        {
           key: "/doc-ingest",
           icon: <InboxOutlined />,
           label: "文档入库",
+          permission: null,
+        },
+        {
+          key: "/rag-dashboard",
+          icon: <BarChartOutlined />,
+          label: "评估看板",
           permission: null,
         },
         {
@@ -84,6 +85,12 @@ function MainLayout() {
           icon: <AuditOutlined />,
           label: "评估集管理",
           permission: { action: "read", subject: "Eval" },
+        },
+        {
+          key: "/eval-runs",
+          icon: <HistoryOutlined />,
+          label: "评估历史",
+          permission: null,
         },
       ],
     },
@@ -145,8 +152,8 @@ function MainLayout() {
   const menuItems = filterMenuItems(allMenuItems);
 
   // 子页面（如 /eval-sets/:id）高亮对应菜单项
-  const selectedKey = location.pathname.startsWith('/eval-sets')
-    ? '/eval-sets'
+  const selectedKey = location.pathname.startsWith("/eval-sets")
+    ? "/eval-sets"
     : location.pathname;
 
   const handleMenuClick = ({ key }: { key: string }) => {
@@ -239,7 +246,9 @@ function MainLayout() {
               overflow: "hidden",
               cursor: "pointer",
               userSelect: "none",
-              background: logoHovered ? "rgba(255, 255, 255, 0.08)" : "transparent",
+              background: logoHovered
+                ? "rgba(255, 255, 255, 0.08)"
+                : "transparent",
               transition: "background 0.2s",
             }}
             onMouseEnter={() => setLogoHovered(true)}

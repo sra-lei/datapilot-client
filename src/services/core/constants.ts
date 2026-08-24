@@ -62,6 +62,11 @@ export const CORE_API = {
     CASES: (id: number) => `/core/eval/sets/${id}/cases`,
     CASE: (id: number) => `/core/eval/cases/${id}`,
     STATS: '/core/stats/eval',
+    // 评估运行（结果入库）
+    RUNS: '/core/eval/runs',
+    RUNS_BATCH: '/core/eval/runs/batch',
+    RUNS_RUN: '/core/eval/runs/run',
+    RUN: (id: number) => `/core/eval/runs/${id}`,
   },
 
   // 系统相关

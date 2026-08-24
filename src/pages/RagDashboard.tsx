@@ -1,31 +1,44 @@
 /**
- * RAG 评估看板
- * 顶部：刷新 + CharterMate 评估趋势 / 分类得分 / 缓存统计 / 网关统计
- * （文档上传入口已迁移到独立页面 /doc-ingest，避免本页面信息过载）
+ * RAG 评估看板（评估总览）
+ * 页面上部常驻「统计总览」（最新平均分 / 通过率 / 响应时间 / 评估次数），
+ * 下部按 Tab 加载三项评估结果（antd Tabs 懒挂载，图表在首次激活对应 Tab 时才初始化）：
+ *   - 历史趋势折线图（含分类）
+ *   - 用例得分柱状图（最新运行）
+ *   - 失败用例列表
+ * - 评估结果入库：顶部「导入评估结果」上传 test_report_*.json
  */
 
-import { ReloadOutlined } from "@ant-design/icons";
 import {
+  CloudUploadOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons";
+import {
+  Alert,
   Button,
   Card,
   Col,
   Empty,
+  List,
   message,
+  Modal,
   Row,
   Spin,
   Statistic,
+  Tabs,
   Tag,
   theme,
+  Upload,
 } from "antd";
+import type { UploadFile, UploadProps } from "antd";
 import ReactECharts from "echarts-for-react";
 import { useEffect, useMemo, useState } from "react";
-import type { CategoryStat, EvalStatsData } from "../services/core";
-import { getEvalStats } from "../services/core";
+import type { EvalStatsData } from "../services/core";
 import {
-  getCacheStats,
-  getGatewayStats,
-  getSemanticCacheStats,
-} from "../services/docs-seeker";
+  getEvalStats,
+  importEvalReport,
+  importEvalReportsBatch,
+} from "../services/core";
+import { usePermission } from "../contexts/PermissionContext";
 
 const CATEGORIES = ["事实查询", "概念查询", "理解推理", "综合概括"];
 
@@ -36,10 +49,8 @@ const CATEGORIES = ["事实查询", "概念查询", "理解推理", "综合概�
  */
 function formatTimestamp(ts: string): string {
   if (!ts) return "";
-  // 匹配 YYYYMMDD_HHMMSS
   const m1 = ts.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})/);
   if (m1) return `${m1[2]}-${m1[3]} ${m1[4]}:${m1[5]}`;
-  // 匹配 YYYY-MM-DD HH:MM:SS
   const m2 = ts.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})/);
   if (m2) return `${m2[2]}-${m2[3]} ${m2[4]}:${m2[5]}`;
   return ts;
@@ -57,15 +68,25 @@ function getScoreColor(
   return token.colorError;
 }
 
+/** 导入前解析的文件 */
+interface ParsedReport {
+  file: string;
+  data?: unknown;
+  error?: string;
+}
+
 function RagDashboard() {
   const [data, setData] = useState<EvalStatsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cacheLoading, setCacheLoading] = useState(false);
-  const [gatewayLoading, setGatewayLoading] = useState(false);
-  const [semanticCacheLoading, setSemanticCacheLoading] = useState(false);
-  const [cacheData, setCacheData] = useState<any>(null);
-  const [gatewayData, setGatewayData] = useState<any>(null);
-  const [semanticCacheData, setSemanticCacheData] = useState<any>(null);
+  const { can } = usePermission();
+  const canWrite = can("write", "Eval");
+
+  // 导入评估结果
+  const [importOpen, setImportOpen] = useState(false);
+  const [importFileList, setImportFileList] = useState<UploadFile[]>([]);
+  const [parsedReports, setParsedReports] = useState<ParsedReport[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [importSummary, setImportSummary] = useState<string | null>(null);
 
   const { token } = theme.useToken();
 
@@ -94,69 +115,13 @@ function RagDashboard() {
     }
   };
 
-  // 加载缓存统计信息
-  const loadCacheStats = async () => {
-    setCacheLoading(true);
-    try {
-      const result = await getCacheStats();
-      if (result.success) {
-        setCacheData(result.data);
-      }
-    } catch (error) {
-      console.error("获取缓存统计失败:", error);
-    } finally {
-      setCacheLoading(false);
-    }
-  };
-
-  // 加载网关统计信息
-  const loadGatewayStats = async () => {
-    setGatewayLoading(true);
-    try {
-      const result = await getGatewayStats();
-      if (result.success) {
-        setGatewayData(result.data);
-      }
-    } catch (error) {
-      console.error("获取网关统计失败:", error);
-    } finally {
-      setGatewayLoading(false);
-    }
-  };
-
-  // 加载语义缓存统计信息
-  const loadSemanticCacheStats = async () => {
-    setSemanticCacheLoading(true);
-    try {
-      const result = await getSemanticCacheStats();
-      if (result.success) {
-        setSemanticCacheData(result.data);
-      }
-    } catch (error) {
-      console.error("获取语义缓存统计失败:", error);
-    } finally {
-      setSemanticCacheLoading(false);
-    }
-  };
-
-  // 刷新看板数据
   const handleRefresh = () => {
-    loadCacheStats();
-    loadGatewayStats();
-    loadSemanticCacheStats();
+    fetchData();
     message.success("正在刷新数据...");
-  };
-
-  // 计算圆形进度条进度
-  const getProgressPercent = (hitRate: string) => {
-    return parseFloat(hitRate) || 0;
   };
 
   useEffect(() => {
     fetchData();
-    loadCacheStats();
-    loadGatewayStats();
-    loadSemanticCacheStats();
   }, []);
 
   const history = data?.history ?? [];
@@ -198,10 +163,13 @@ function RagDashboard() {
       title: {
         text: "评估得分趋势",
         left: "center",
+        top: 0, // 标题放上面
         textStyle: { fontSize: 16 },
       },
       tooltip: {
         trigger: "axis",
+        confine: true, // 不超出图表容器，自动避让边界
+        position: (point: number[]) => [point[0], point[1] + 12], // tooltip 下移，避免与上方文字重合
         formatter: (params: any[]) => {
           let html = params[0]?.axisValue + "<br/>";
           for (const p of params) {
@@ -214,9 +182,10 @@ function RagDashboard() {
       },
       legend: {
         data: ["平均分", ...CATEGORIES],
-        bottom: 0,
+        bottom: 0, // toolset（图例）放下面
       },
-      grid: { left: "5%", right: "5%", bottom: "12%", top: "15%" },
+      // bottom 留足空间：旋转 30° 的时间标签与底部图例互不重叠
+      grid: { left: "5%", right: "5%", bottom: "26%", top: "16%" },
       xAxis: { type: "category", data: xData, axisLabel: { rotate: 30 } },
       yAxis: {
         type: "value",
@@ -257,7 +226,8 @@ function RagDashboard() {
           );
         },
       },
-      grid: { left: "5%", right: "5%", bottom: "10%", top: "15%" },
+      // top 加大：标题与图表主体拉开间距
+      grid: { left: "5%", right: "5%", bottom: "10%", top: "22%" },
       xAxis: { type: "category", data: xData, axisLabel: { rotate: 45 } },
       yAxis: {
         type: "value",
@@ -282,81 +252,165 @@ function RagDashboard() {
     };
   }, [latest, token]);
 
-  // ===== 分类雷达图配置 =====
-  const radarOption = useMemo(() => {
-    if (!latest) return null;
-
-    const latestCats = latest.summary.category_stats || {};
-    // 找到倒数第二条有分类数据的记录
-    let prevCats: Record<string, CategoryStat> | undefined;
-    for (let i = history.length - 2; i >= 0; i--) {
-      const cats = history[i]?.category_stats;
-      if (cats && Object.keys(cats).length > 0) {
-        prevCats = cats;
-        break;
-      }
-    }
-
-    const indicator = CATEGORIES.map((cat) => ({
-      name: cat,
-      max: 100,
-    }));
-
-    const series = [
-      {
-        name: "最新",
-        type: "radar",
-        data: [
-          {
-            value: CATEGORIES.map(
-              (cat) => +((latestCats[cat]?.avg_score ?? 0) * 100).toFixed(1),
-            ),
-            name: "最新",
-            itemStyle: { color: token.colorPrimary },
-            areaStyle: { opacity: 0.2 },
-          },
-        ],
-      },
-    ];
-
-    if (prevCats) {
-      series.push({
-        name: "上一次",
-        type: "radar",
-        data: [
-          {
-            value: CATEGORIES.map(
-              (cat) => +((prevCats[cat]?.avg_score ?? 0) * 100).toFixed(1),
-            ),
-            name: "上一次",
-            itemStyle: { color: token.colorWarning },
-            areaStyle: { opacity: 0.1 },
-          },
-        ],
-      });
-    }
-
-    return {
-      title: {
-        text: "分类得分对比",
-        left: "center",
-        textStyle: { fontSize: 16 },
-      },
-      tooltip: { trigger: "item" },
-      legend: {
-        data: prevCats ? ["最新", "上一次"] : ["最新"],
-        bottom: 0,
-      },
-      radar: {
-        indicator,
-        radius: "65%",
-      },
-      series,
-    };
-  }, [latest, history, token]);
-
   // ===== 失败用例列表 =====
   const failedCases = latest?.summary?.failed_cases ?? [];
+
+  // ===== 下部 Tab：历史趋势折线图 / 用例得分柱状图 / 失败用例 =====
+  const tabItems = [
+    {
+      key: "trend",
+      label: "历史趋势折线图",
+      children: (
+        <Card>
+          <ReactECharts option={trendOption} style={{ height: 420 }} />
+        </Card>
+      ),
+    },
+    {
+      key: "cases",
+      label: "用例得分柱状图",
+      children: (
+        <Card>
+          {caseOption ? (
+            <ReactECharts option={caseOption} style={{ height: 420 }} />
+          ) : (
+            <Empty description="暂无用例数据" />
+          )}
+        </Card>
+      ),
+    },
+    {
+      key: "failed",
+      label: "失败用例",
+      children: (
+        <Card
+          title={
+            failedCases.length > 0
+              ? `失败用例 (得分 < 50%)，共 ${failedCases.length} 条`
+              : "失败用例"
+          }
+        >
+          {failedCases.length > 0 ? (
+            <List
+              dataSource={failedCases}
+              renderItem={(c) => (
+                <List.Item
+                  style={{ padding: "8px 0" }}
+                  actions={[
+                    <Tag
+                      key="score"
+                      color={
+                        getScoreColor(c.score, token) === token.colorSuccess
+                          ? "green"
+                          : "red"
+                      }
+                    >
+                      {(c.score * 100).toFixed(0)}%
+                    </Tag>,
+                  ]}
+                >
+                  <List.Item.Meta
+                    avatar={<Tag color="red">{c.id}</Tag>}
+                    title={<span style={{ fontSize: 13 }}>{c.question}</span>}
+                  />
+                </List.Item>
+              )}
+            />
+          ) : (
+            <Empty description="本次运行暂无失败用例" />
+          )}
+        </Card>
+      ),
+    },
+  ];
+
+  // ===== 导入评估结果 =====
+  const parseFiles = async (files: UploadFile[]) => {
+    setImportFileList(files);
+    const parsed: ParsedReport[] = [];
+    for (const f of files) {
+      const file = f.originFileObj as File | undefined;
+      if (!file) continue;
+      try {
+        const text = await file.text();
+        const json = JSON.parse(text) as { results?: unknown };
+        if (!Array.isArray(json.results) || json.results.length === 0) {
+          parsed.push({ file: file.name, error: "results 为空数组，无法入库" });
+        } else {
+          parsed.push({ file: file.name, data: json });
+        }
+      } catch (err) {
+        parsed.push({
+          file: file.name,
+          error: `JSON 解析失败: ${(err as Error).message}`,
+        });
+      }
+    }
+    setParsedReports(parsed);
+    setImportSummary(null);
+  };
+
+  const uploadProps: UploadProps = {
+    multiple: true,
+    accept: ".json,application/json",
+    beforeUpload: () => false, // 禁止自动上传，改为本地解析后统一提交
+    fileList: importFileList,
+    onChange: ({ fileList }) => parseFiles(fileList),
+    onRemove: () => {
+      setImportFileList([]);
+      setParsedReports([]);
+      setImportSummary(null);
+    },
+  };
+
+  const validReports = parsedReports.filter((p) => p.data);
+
+  const handleImportOk = async () => {
+    if (validReports.length === 0) return;
+    setImporting(true);
+    setImportSummary(null);
+    try {
+      if (validReports.length === 1) {
+        const res = await importEvalReport(validReports[0].data);
+        if (res.success && res.data) {
+          setImportSummary(`✅ 已入库：运行 #${res.data.run_id}`);
+        } else {
+          setImportSummary(`❌ 导入失败：${res.msg || "未知错误"}`);
+        }
+      } else {
+        const res = await importEvalReportsBatch(
+          validReports.map((p) => p.data),
+        );
+        if (res.success && res.data) {
+          const { total, inserted, failures } = res.data;
+          setImportSummary(
+            `✅ 批量导入完成：成功 ${inserted}/${total}` +
+              (failures.length > 0
+                ? `，失败 ${failures.length} 份（${failures
+                    .map((f) => `#${f.index + 1} ${f.reason ?? ""}`)
+                    .join("；")}）`
+                : ""),
+          );
+        } else {
+          setImportSummary(`❌ 批量导入失败：${res.msg || "未知错误"}`);
+        }
+      }
+      await fetchData();
+      message.success("评估结果已入库，看板已刷新");
+    } catch (error) {
+      console.error("导入评估结果失败:", error);
+      message.error("导入失败，请稍后重试");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleCloseImport = () => {
+    setImportOpen(false);
+    setImportFileList([]);
+    setParsedReports([]);
+    setImportSummary(null);
+  };
 
   if (loading) {
     return (
@@ -369,7 +423,7 @@ function RagDashboard() {
   if (!data || (!history.length && !latest)) {
     return (
       <div style={{ padding: "48px 0" }}>
-        <Empty description="暂无评估数据，请先运行 python -m tests.test_chat" />
+        <Empty description="暂无评估数据。请先运行 test_chat.py 生成报告，再通过右上角「导入评估结果」入库" />
       </div>
     );
   }
@@ -385,371 +439,38 @@ function RagDashboard() {
         }}
       >
         <h2 style={{ margin: 0 }}>RAG 评估看板</h2>
-        <Button
-          icon={<ReloadOutlined />}
-          onClick={handleRefresh}
-          loading={loading}
-        >
-          刷新
-        </Button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {canWrite && (
+            <Button
+              icon={<CloudUploadOutlined />}
+              onClick={() => setImportOpen(true)}
+            >
+              导入评估结果
+            </Button>
+          )}
+          <Button icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
+            刷新
+          </Button>
+        </div>
       </div>
 
-      {/* CharterMate 看板 - 顶部一排展示 */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={8}>
-          <Spin spinning={cacheLoading}>
-            <Card type="inner" title="缓存统计" style={{ height: 180 }}>
-              {cacheData ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  {/* 左侧：圆形进度条显示命中率 */}
-                  <div style={{ position: "relative", width: 80, height: 80 }}>
-                    <svg width="80" height="80" viewBox="0 0 80 80">
-                      {/* 背景圆环 */}
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="32"
-                        fill="none"
-                        stroke={token.colorBorderSecondary}
-                        strokeWidth="6"
-                      />
-                      {/* 进度圆环 */}
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="32"
-                        fill="none"
-                        stroke={
-                          parseFloat(cacheData.hit_rate) >= 80
-                            ? token.colorSuccess
-                            : parseFloat(cacheData.hit_rate) >= 50
-                              ? token.colorWarning
-                              : token.colorError
-                        }
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                        transform="rotate(-90 40 40)"
-                        style={{
-                          strokeDasharray: `${(getProgressPercent(cacheData.hit_rate) / 100) * 2 * Math.PI * 32} ${2 * Math.PI * 32}`,
-                          transition: "stroke-dasharray 0.5s ease",
-                        }}
-                      />
-                    </svg>
-                    {/* 中心文字 */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        textAlign: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 16,
-                          fontWeight: "bold",
-                          color: token.colorPrimary,
-                        }}
-                      >
-                        {cacheData.hit_rate}
-                      </div>
-                      <div style={{ fontSize: 9, color: token.colorTextSecondary }}>命中率</div>
-                    </div>
-                  </div>
-
-                  {/* 右侧：统计数据 */}
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>命中:</span>
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "bold",
-                          color: token.colorSuccess,
-                        }}
-                      >
-                        {cacheData.hits}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
-                        未命中:
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "bold",
-                          color: token.colorError,
-                        }}
-                      >
-                        {cacheData.misses}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
-                        累计请求:
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "bold",
-                          color: token.colorPrimary,
-                        }}
-                      >
-                        {cacheData.hits + cacheData.misses}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>暂无数据</div>
-              )}
-            </Card>
-          </Spin>
-        </Col>
-
-        <Col span={8}>
-          <Spin spinning={gatewayLoading}>
-            <Card type="inner" title="网关状态" style={{ height: 180 }}>
-              {gatewayData ? (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                >
-                  {/* 第一行：熔断器状态 */}
-                  <div
-                    style={{ display: "flex", alignItems: "center", gap: 6 }}
-                  >
-                    <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>熔断器:</span>
-                    <Tag
-                      color={
-                        gatewayData.circuit_state === "closed"
-                          ? "success"
-                          : gatewayData.circuit_state === "open"
-                            ? "error"
-                            : "warning"
-                      }
-                    >
-                      {gatewayData.circuit_state === "closed"
-                        ? "正常"
-                        : gatewayData.circuit_state === "open"
-                          ? "熔断"
-                          : "半开"}
-                    </Tag>
-                  </div>
-
-                  {/* 第二行：其他统计数据横向排列 */}
-                  <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 4 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>调用:</span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "bold",
-                          color: token.colorPrimary,
-                        }}
-                      >
-                        {gatewayData.total_calls}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 4 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>成功:</span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "bold",
-                          color: token.colorSuccess,
-                        }}
-                      >
-                        {gatewayData.success_calls}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 4 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>备用:</span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "bold",
-                          color: token.colorWarning,
-                        }}
-                      >
-                        {gatewayData.fallback_calls}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 4 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 11 }}>失败:</span>
-                      <span
-                        style={{
-                          fontSize: 13,
-                          fontWeight: "bold",
-                          color: token.colorError,
-                        }}
-                      >
-                        {gatewayData.circuit_failures}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>暂无数据</div>
-              )}
-            </Card>
-          </Spin>
-        </Col>
-
-        <Col span={8}>
-          <Spin spinning={semanticCacheLoading}>
-            <Card type="inner" title="语义缓存" style={{ height: 180 }}>
-              {semanticCacheData ? (
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  {/* 左侧：圆形进度条显示命中率 */}
-                  <div style={{ position: "relative", width: 80, height: 80 }}>
-                    <svg width="80" height="80" viewBox="0 0 80 80">
-                      {/* 背景圆环 */}
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="32"
-                        fill="none"
-                        stroke={token.colorBorderSecondary}
-                        strokeWidth="6"
-                      />
-                      {/* 进度圆环 */}
-                      <circle
-                        cx="40"
-                        cy="40"
-                        r="32"
-                        fill="none"
-                        stroke={
-                          parseFloat(semanticCacheData.hit_rate) >= 80
-                            ? token.colorSuccess
-                            : parseFloat(semanticCacheData.hit_rate) >= 50
-                              ? token.colorWarning
-                              : token.colorError
-                        }
-                        strokeWidth="6"
-                        strokeLinecap="round"
-                        transform="rotate(-90 40 40)"
-                        style={{
-                          strokeDasharray: `${(getProgressPercent(semanticCacheData.hit_rate) / 100) * 2 * Math.PI * 32} ${2 * Math.PI * 32}`,
-                          transition: "stroke-dasharray 0.5s ease",
-                        }}
-                      />
-                    </svg>
-                    {/* 中心文字 */}
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: "50%",
-                        left: "50%",
-                        transform: "translate(-50%, -50%)",
-                        textAlign: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: 16,
-                          fontWeight: "bold",
-                          color: token.colorPrimary,
-                        }}
-                      >
-                        {semanticCacheData.hit_rate}
-                      </div>
-                      <div style={{ fontSize: 9, color: token.colorTextSecondary }}>命中率</div>
-                    </div>
-                  </div>
-
-                  {/* 右侧：统计数据 */}
-                  <div
-                    style={{ display: "flex", flexDirection: "column", gap: 8 }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>命中:</span>
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "bold",
-                          color: token.colorSuccess,
-                        }}
-                      >
-                        {semanticCacheData.hits}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
-                        未命中:
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "bold",
-                          color: token.colorError,
-                        }}
-                      >
-                        {semanticCacheData.misses}
-                      </span>
-                    </div>
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 6 }}
-                    >
-                      <span style={{ color: token.colorTextSecondary, fontSize: 12 }}>
-                        相似度阈值:
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 14,
-                          fontWeight: "bold",
-                          color: token.colorPrimary,
-                        }}
-                      >
-                        {semanticCacheData.threshold}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>暂无数据</div>
-              )}
-            </Card>
-          </Spin>
-        </Col>
-      </Row>
-
-      {/* 统计卡片 */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
+      {/* 页面上部：统计总览（常驻，不随 Tab 切换） */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 10 }}>
+        <Col xs={12} md={6}>
           <Card>
             <Statistic
               title="最新平均分"
               value={latest ? (latest.avg_score * 100).toFixed(1) : "--"}
               suffix="%"
               valueStyle={{
-                color: latest ? getScoreColor(latest.avg_score, token) : undefined,
+                color: latest
+                  ? getScoreColor(latest.avg_score, token)
+                  : undefined,
               }}
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} md={6}>
           <Card>
             <Statistic
               title="通过率 (≥80%)"
@@ -762,7 +483,7 @@ function RagDashboard() {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} md={6}>
           <Card>
             <Statistic
               title="平均响应时间"
@@ -771,71 +492,66 @@ function RagDashboard() {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} md={6}>
           <Card>
-            <Statistic
-              title="历史评估次数"
-              value={history.length}
-              suffix="次"
-            />
+            <Statistic title="历史评估次数" value={history.length} suffix="次" />
           </Card>
         </Col>
       </Row>
 
-      {/* 趋势折线图 */}
-      <Card style={{ marginBottom: 16 }}>
-        <ReactECharts option={trendOption} style={{ height: 400 }} />
-      </Card>
+      {/* 下部 Tab：历史趋势折线图 / 用例得分柱状图 / 失败用例（懒挂载，首次激活才初始化） */}
+      <Tabs defaultActiveKey="trend" items={tabItems} />
 
-      {/* 柱状图 + 雷达图 */}
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={14}>
-          <Card>
-            {caseOption ? (
-              <ReactECharts option={caseOption} style={{ height: 400 }} />
-            ) : (
-              <Empty description="暂无用例数据" />
-            )}
-          </Card>
-        </Col>
-        <Col span={10}>
-          <Card>
-            {radarOption ? (
-              <ReactECharts option={radarOption} style={{ height: 400 }} />
-            ) : (
-              <Empty description="暂无分类数据" />
-            )}
-          </Card>
-        </Col>
-      </Row>
+      {/* 导入评估结果弹窗 */}
+      <Modal
+        title="导入评估结果"
+        open={importOpen}
+        onCancel={handleCloseImport}
+        onOk={handleImportOk}
+        okText="确认入库"
+        cancelText="取消"
+        confirmLoading={importing}
+        okButtonProps={{ disabled: validReports.length === 0 }}
+        width={640}
+      >
+        <p style={{ color: token.colorTextSecondary, marginBottom: 8 }}>
+          上传 test_chat.py 生成的 test_report_*.json（可多选，支持批量入库）
+        </p>
+        <Upload.Dragger {...uploadProps}>
+          <p className="ant-upload-drag-icon">
+            <CloudUploadOutlined />
+          </p>
+          <p className="ant-upload-text">点击或拖拽 JSON 报告到此处</p>
+          <p className="ant-upload-hint">单份或多份 test_report_*.json</p>
+        </Upload.Dragger>
 
-      {/* 失败用例 */}
-      {failedCases.length > 0 && (
-        <Card title="失败用例 (得分 < 50%)">
-          {failedCases.map((c) => (
-            <div
-              key={c.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                padding: "8px 0",
-                borderBottom: `1px solid ${token.colorBorderSecondary}`,
-              }}
-            >
-              <Tag color="red">{c.id}</Tag>
-              <span style={{ flex: 1, color: token.colorText, fontSize: 13 }}>
-                {c.question}
-              </span>
-              <Tag
-                color={getScoreColor(c.score, token) === token.colorSuccess ? "green" : "red"}
-              >
-                {(c.score * 100).toFixed(0)}%
-              </Tag>
-            </div>
-          ))}
-        </Card>
-      )}
+        {parsedReports.length > 0 && (
+          <List
+            size="small"
+            style={{ marginTop: 12 }}
+            dataSource={parsedReports}
+            renderItem={(p) => (
+              <List.Item>
+                <span style={{ flex: 1 }}>{p.file}</span>
+                {p.error ? (
+                  <Tag color="error">{p.error}</Tag>
+                ) : (
+                  <Tag color="success">解析成功</Tag>
+                )}
+              </List.Item>
+            )}
+          />
+        )}
+
+        {importSummary && (
+          <Alert
+            style={{ marginTop: 12 }}
+            type={importSummary.startsWith("✅") ? "success" : "error"}
+            message={importSummary}
+            showIcon
+          />
+        )}
+      </Modal>
     </div>
   );
 }

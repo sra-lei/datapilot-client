@@ -7,6 +7,7 @@ import MainLayout from "../layouts/MainLayout";
 import About from "../pages/About";
 import Dashboard from "../pages/Dashboard";
 import DocIngest from "../pages/DocIngest";
+import EvalRuns from "../pages/EvalRuns";
 import EvalSets from "../pages/EvalSets";
 import EvalSetCases from "../pages/EvalSetCases";
 import Login from "../pages/Login";
@@ -55,6 +56,10 @@ const protectedRoutes: RouteObject[] = [
       {
         path: "/rag-dashboard",
         element: <RagDashboard />,
+      },
+      {
+        path: "/eval-runs",
+        element: <EvalRuns />,
       },
       {
         path: "/eval-sets",
