@@ -3,13 +3,13 @@
  * 两个服务共享的类型
  */
 
-// 统一响应接口（兼容 Core 和 CharterMate 两种格式）
+// 统一响应接口（兼容 Core 与 Python 服务两种格式）
 export interface ApiResponse<T = unknown> {
   // Core 服务使用的字段
   code?: number;
   message?: string;
 
-  // CharterMate 服务使用的字段（旧格式）
+  // 旧 Python 服务使用的字段（doc-kit / docs-seeker）
   status?: number;
   msg?: string;
 

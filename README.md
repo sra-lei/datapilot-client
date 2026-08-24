@@ -123,7 +123,6 @@ npm run lint:fix
 |----------|---------|------|
 | `/core` | Node.js Core Service | 用户、权限、数据库等核心服务 |
 | `/v1` | Python Docs-Seeker Service | RAG 检索问答（chat / retrieve / health / stats） |
-| `/api/v1` | 旧 Python Business Service | 兼容保留（旧 CharterMate） |
 
 代理配置位于 `vite.config.ts`，服务器地址通过 `.env.development` 中的环境变量管理。
 
@@ -132,7 +131,7 @@ npm run lint:fix
 Services 层按业务系统分为三个子模块：
 
 - **Core Service**（`src/services/core/`）：对接 Node.js 后端，负责用户认证、权限管理、数据库操作、评估统计等核心功能
-- **Docs-Seeker Service**（`src/services/docs-seeker/`）：对接 Python FastAPI 后端，负责 RAG 检索问答、健康检查、缓存/网关运行指标（原 CharterMate 对接迁移至此）
+- **Docs-Seeker Service**（`src/services/docs-seeker/`）：对接 Python FastAPI 后端，负责 RAG 检索问答、健康检查、缓存/网关运行指标
 - **Doc-Kit Service**（`src/services/doc-kit/`）：对接文档解析 / 向量入库服务
 
 详细使用说明参见 `src/services/README.md`。

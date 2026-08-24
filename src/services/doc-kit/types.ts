@@ -144,7 +144,7 @@ export interface DocKitDocumentRecord {
   error?: string | null;
 }
 
-/** 列表页分页参数（保持与 chartermate 的分页语义一致：page 从 1 开始） */
+/** 列表页分页参数（保持与后端分页语义一致：page 从 1 开始） */
 export interface DocKitListDocumentsParams {
   page?: number;
   page_size?: number;

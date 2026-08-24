@@ -2,7 +2,7 @@
 
 ## 概述
 
-Services 模块统一管理所有与后端服务器的通信，按业务系统分为 Core、Docs-Seeker、Doc-Kit 三个子模块（原 CharterMate 对接已迁移至 Docs-Seeker）。
+Services 模块统一管理所有与后端服务器的通信，按业务系统分为 Core、Docs-Seeker、Doc-Kit 三个子模块。
 
 ## 目录结构
 

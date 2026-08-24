@@ -9,7 +9,7 @@ export * from "./types";
 // Core Service
 export * from "./core";
 
-// Docs-Seeker Service（RAG 检索问答，原 CharterMate 对接迁移至此）
+// Docs-Seeker Service（RAG 检索问答）
 export * from "./docs-seeker";
 
 // Doc-Kit Service（文档解析 / 向量入库）

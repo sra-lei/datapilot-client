@@ -2,7 +2,7 @@
  * 统一请求工具
  * 开发环境使用 Vite 代理转发；生产环境使用 Nginx 反向代理转发。
  *
- * 默认行为（兼容 Core / CharterMate 现有 JSON 请求）：
+ * 默认行为（兼容 Core / Python 服务现有 JSON 请求）：
  * - Content-Type: application/json
  * - body 对象/数组 → JSON.stringify
  *
@@ -165,7 +165,7 @@ export async function request<T = unknown>(
     }
 
     // success 双格式兼容：
-    // Core：code === 200；doc-kit / chartermate：status === 200
+    // Core：code === 200；doc-kit / docs-seeker：status === 200
     result.success =
       (typeof result.code === "number" && result.code >= 200 && result.code < 300) ||
       (typeof result.status === "number" && result.status >= 200 && result.status < 300);

@@ -1,5 +1,5 @@
 /**
- * Core Service 评估统计（原 chartermate/eval.ts 迁移）
+ * Core Service 评估统计
  * 评估数据由 Core 服务提供（/core/stats/eval）
  */
 import { coreRequest } from "../../utils/request";

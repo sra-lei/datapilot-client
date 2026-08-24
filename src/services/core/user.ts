@@ -78,7 +78,7 @@ export async function updateUserStatus(
 }
 
 /**
- * 检查 Core 服务健康状态（命名加 Core 后缀，避免与 chartermate checkHealth 冲突）
+ * 检查 Core 服务健康状态
  */
 export async function checkCoreHealth(): Promise<
   ApiResponse<{ status: string }>

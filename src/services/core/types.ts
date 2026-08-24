@@ -164,7 +164,7 @@ export interface EvalSetImportData {
   import_result: EvalCaseImportResult;
 }
 
-// ============ 评估统计（原 chartermate/eval.ts 迁移，数据由 Core /core/stats/eval 提供） ============
+// ============ 评估统计（数据由 Core /core/stats/eval 提供） ============
 
 // 分类统计
 export interface CategoryStat {
