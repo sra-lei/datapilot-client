@@ -8,19 +8,34 @@ import {
   LoadingOutlined,
   MessageOutlined,
   MinusOutlined,
+  RobotOutlined,
   SendOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
-import { Button, Input, Space, theme } from "antd";
+import { Avatar, Button, Input, Space, theme } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { chatStream, getTopQuestions } from "../services/docs-seeker";
 import type { UsageTopQuestion } from "../services/docs-seeker";
 import type { ChatMessage } from "../types";
 
+// 默认角色信息：给对话加上默认头像和名称，让对话更真实
+const AGENT_NAME = "智能助手";
+const USER_NAME = "我";
+const WELCOME_CONTENT =
+  "您好！我是智能助手，很高兴为您服务。请问有什么可以帮您？";
+
 function ChatWidget() {
   const { token } = theme.useToken();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => [
+    {
+      id: 0,
+      sender: "agent",
+      content: WELCOME_CONTENT,
+      timestamp: new Date().toLocaleTimeString("zh-CN"),
+    },
+  ]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [topQuestions, setTopQuestions] = useState<UsageTopQuestion[]>([]);
@@ -32,14 +47,14 @@ function ChatWidget() {
     }
   }, [messages, isOpen, isMinimized]);
 
-  // 打开时拉取热门问题（欢迎语快捷按钮）
+  // 打开时拉取热门问题（默认问题：取 Top10 中的前 3 个）
   useEffect(() => {
     if (!isOpen) return;
     let cancelled = false;
     void (async () => {
-      const r = await getTopQuestions(6);
+      const r = await getTopQuestions(10);
       if (!cancelled && r.success && r.data) {
-        setTopQuestions(r.data.questions);
+        setTopQuestions(r.data.questions.slice(0, 3));
       }
     })();
     return () => {
@@ -130,6 +145,9 @@ function ChatWidget() {
     );
   }
 
+  // 用户是否已经发过消息：未发过时展示默认问题（Top3）快捷按钮
+  const hasUserSent = messages.some((msg) => msg.sender === "user");
+
   return (
     <div
       style={{
@@ -160,8 +178,12 @@ function ChatWidget() {
         onClick={() => setIsMinimized(!isMinimized)}
       >
         <Space>
-          <MessageOutlined />
-          <span style={{ fontWeight: "bold" }}>在线客服</span>
+          <Avatar
+            size={26}
+            icon={<RobotOutlined />}
+            style={{ background: "rgba(255, 255, 255, 0.25)" }}
+          />
+          <span style={{ fontWeight: "bold" }}>{AGENT_NAME}</span>
         </Space>
         <Space>
           <Button
@@ -199,94 +221,161 @@ function ChatWidget() {
               background: token.colorBgLayout,
             }}
           >
-            {messages.length === 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  color: token.colorTextTertiary,
-                }}
-              >
-                <div style={{ textAlign: "center", width: "100%" }}>
-                  <MessageOutlined
-                    style={{ fontSize: 48, marginBottom: 8, opacity: 0.5 }}
-                  />
-                  <p>您好，有什么可以帮您？</p>
-                  {topQuestions.length > 0 && (
-                    <div style={{ marginTop: 12, padding: "0 12px" }}>
-                      <div style={{ fontSize: 12, marginBottom: 8 }}>
-                        大家都在问：
-                      </div>
-                      <Space direction="vertical" size={6} style={{ width: "100%" }}>
-                        {topQuestions.map((tq) => (
-                          <Button
-                            key={tq.question}
-                            size="small"
-                            block
-                            onClick={() => void handleSend(tq.question)}
-                            style={{
-                              textAlign: "left",
-                              whiteSpace: "normal",
-                              height: "auto",
-                              padding: "6px 12px",
-                            }}
-                          >
-                            {tq.question}
-                          </Button>
-                        ))}
-                      </Space>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <Space direction="vertical" style={{ width: "100%" }}>
-                {messages.map((msg) => (
+            <Space direction="vertical" size={14} style={{ width: "100%" }}>
+              {messages.map((msg) => {
+                const isUser = msg.sender === "user";
+                return (
                   <div
                     key={msg.id}
                     style={{
                       display: "flex",
-                      justifyContent:
-                        msg.sender === "user" ? "flex-end" : "flex-start",
+                      alignItems: "flex-start",
+                      justifyContent: isUser ? "flex-end" : "flex-start",
+                      gap: 8,
                     }}
                   >
+                    {!isUser && (
+                      <Avatar
+                        size={34}
+                        icon={<RobotOutlined />}
+                        style={{
+                          flexShrink: 0,
+                          background: token.colorPrimary,
+                          marginTop: 2,
+                        }}
+                      />
+                    )}
                     <div
                       style={{
-                        maxWidth: "75%",
-                        padding: "8px 12px",
-                        borderRadius: 8,
-                        background:
-                          msg.sender === "user"
-                            ? token.colorPrimary
-                            : token.colorBgContainer,
-                        color:
-                          msg.sender === "user"
-                            ? token.colorTextLightSolid
-                            : token.colorText,
-                        boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: isUser ? "flex-end" : "flex-start",
+                        maxWidth: "78%",
                       }}
                     >
-                      <p style={{ margin: 0, wordBreak: "break-word" }}>
-                        {msg.content}
-                      </p>
-                      <p
+                      <span
                         style={{
-                          margin: "4px 0 0",
+                          fontSize: 12,
+                          color: token.colorTextSecondary,
+                          margin: "0 4px 4px",
+                        }}
+                      >
+                        {isUser ? USER_NAME : AGENT_NAME}
+                      </span>
+                      <div
+                        style={{
+                          padding: "8px 12px",
+                          borderRadius: isUser
+                            ? "8px 2px 8px 8px"
+                            : "2px 8px 8px 8px",
+                          background: isUser
+                            ? token.colorPrimary
+                            : token.colorBgContainer,
+                          color: isUser
+                            ? token.colorTextLightSolid
+                            : token.colorText,
+                          boxShadow: "0 1px 2px rgba(0, 0, 0, 0.1)",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {msg.content || (
+                          <span style={{ color: token.colorTextTertiary }}>
+                            正在输入…
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        style={{
                           fontSize: 10,
                           opacity: 0.6,
-                          textAlign: "right",
+                          margin: "4px 4px 0",
                         }}
                       >
                         {msg.timestamp}
-                      </p>
+                      </span>
                     </div>
+                    {isUser && (
+                      <Avatar
+                        size={34}
+                        icon={<UserOutlined />}
+                        style={{
+                          flexShrink: 0,
+                          background: token.colorPrimary,
+                          marginTop: 2,
+                        }}
+                      />
+                    )}
                   </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </Space>
-            )}
+                );
+              })}
+
+              {/* 默认问题：用户还未提问时展示 Top3 快捷按钮 */}
+              {!hasUserSent && topQuestions.length > 0 && (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 8,
+                  }}
+                >
+                  <Avatar
+                    size={34}
+                    icon={<RobotOutlined />}
+                    style={{
+                      flexShrink: 0,
+                      background: token.colorPrimary,
+                      marginTop: 2,
+                    }}
+                  />
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "flex-start",
+                      maxWidth: "78%",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: token.colorTextSecondary,
+                        margin: "0 4px 4px",
+                      }}
+                    >
+                      {AGENT_NAME}
+                    </span>
+                    <div
+                      style={{
+                        fontSize: 12,
+                        color: token.colorTextSecondary,
+                        margin: "0 4px 8px",
+                      }}
+                    >
+                      大家都在问：
+                    </div>
+                    <Space direction="vertical" size={6} style={{ width: "100%" }}>
+                      {topQuestions.map((tq) => (
+                        <Button
+                          key={tq.question}
+                          size="small"
+                          onClick={() => void handleSend(tq.question)}
+                          style={{
+                            textAlign: "left",
+                            whiteSpace: "normal",
+                            height: "auto",
+                            padding: "6px 12px",
+                            borderRadius: 16,
+                          }}
+                        >
+                          {tq.question}
+                        </Button>
+                      ))}
+                    </Space>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </Space>
           </div>
 
           <div
