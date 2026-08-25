@@ -33,7 +33,11 @@ client/
 │   │   └── MainLayout.tsx   # 主布局
 │   ├── pages/               # 页面
 │   │   ├── Dashboard.tsx        # 仪表盘
-│   │   ├── RagDashboard.tsx     # RAG 仪表盘
+│   │   ├── RagDashboard.tsx     # RAG 评估看板
+│   │   ├── DocIngest.tsx        # 文档入库
+│   │   ├── EvalSets.tsx         # 评估集管理
+│   │   ├── EvalSetCases.tsx     # 评估用例管理
+│   │   ├── EvalRuns.tsx         # 评估历史（在线评测）
 │   │   ├── DatabaseViewer.tsx   # 数据库查看器
 │   │   ├── Users.tsx            # 用户管理
 │   │   ├── Permissions.tsx      # 权限管理
@@ -165,7 +169,9 @@ import { login } from './services/core';
 ## 功能模块
 
 - **仪表盘**：数据概览与统计展示
-- **RAG 仪表盘**：RAG 系统状态监控
+- **RAG 评估看板**：评估报告可视化（历史趋势、通过率、失败用例），支持导入评估报告
+- **评估集管理**：评估集与用例的可视化维护（三态管理、批量导入、一键导出）
+- **评估历史**：在线运行评估集、评估结果入库与历史管理
 - **数据库查看器**：数据库表结构浏览
 - **用户管理**：用户增删改查
 - **权限管理**：基于角色的访问控制（RBAC）
