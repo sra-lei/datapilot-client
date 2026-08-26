@@ -36,7 +36,7 @@ function getAnonymousId(): string {
  * 附带在 X-User-ID 头中，供 docs-seeker 做 RAG 使用统计。
  * 登录用户取真实 id；未登录（无需登录即可使用 chat）时生成/复用匿名 uuid。
  */
-function getCurrentUserId(): string | null {
+export function getCurrentUserId(): string | null {
   try {
     const raw = localStorage.getItem("currentUser") || localStorage.getItem("user");
     if (raw) {
