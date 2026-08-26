@@ -42,9 +42,8 @@ export async function importEvalReportsBatch(
 export async function runEvalSet(
   set_id: number,
 ): Promise<ApiResponse<EvalRunSetResult>> {
-  return coreRequest<EvalRunSetResult>(CORE_API.EVAL.RUNS_RUN, {
+  return coreRequest<EvalRunSetResult>(CORE_API.EVAL.RUN_SET(set_id), {
     method: "POST",
-    body: { set_id },
     timeout: 10 * 60 * 1000,
   });
 }

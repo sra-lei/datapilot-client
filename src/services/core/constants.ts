@@ -65,7 +65,7 @@ export const CORE_API = {
     // 评估运行（结果入库）
     RUNS: '/core/eval/runs',
     RUNS_BATCH: '/core/eval/runs/batch',
-    RUNS_RUN: '/core/eval/runs/run',
+    RUN_SET: (id: number) => `/core/eval/sets/${id}/runs`,
     RUN: (id: number) => `/core/eval/runs/${id}`,
   },
 
