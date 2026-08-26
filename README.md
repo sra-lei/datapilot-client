@@ -126,7 +126,7 @@ npm run lint:fix
 | 路径前缀 | 目标服务 | 说明 |
 |----------|---------|------|
 | `/core` | Node.js Core Service | 用户、权限、数据库等核心服务 |
-| `/v1` | Python Docs-Seeker Service | RAG 检索问答（chat / retrieve / health / stats） |
+| `/v1` | Python Docs-Seeker Service | RAG 检索问答（chat / health / stats） |
 
 代理配置位于 `vite.config.ts`，服务器地址通过 `.env.development` 中的环境变量管理。
 

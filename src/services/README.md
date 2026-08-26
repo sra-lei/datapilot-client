@@ -74,7 +74,6 @@ CORE_API.EVAL.STATS           // /core/stats/eval
 
 // Docs-Seeker Service API
 DOCS_SEEKER_API.CHAT         // /v1/chat
-DOCS_SEEKER_API.RETRIEVE     // /v1/retrieve
 DOCS_SEEKER_API.HEALTH       // /v1/health
 DOCS_SEEKER_API.STATS        // /v1/stats
 ```
