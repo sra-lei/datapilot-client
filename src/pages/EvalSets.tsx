@@ -7,6 +7,7 @@ import {
   AuditOutlined,
   DeleteOutlined,
   EditOutlined,
+  ExperimentOutlined,
   FileAddOutlined,
   PlayCircleOutlined,
   PlusOutlined,
@@ -19,11 +20,14 @@ import {
   Card,
   Form,
   Input,
+  InputNumber,
   message,
   Modal,
   Popconfirm,
+  Select,
   Space,
   Table,
+  Tabs,
   Tag,
 } from 'antd';
 import { useCallback, useEffect, useState } from 'react';
@@ -33,7 +37,9 @@ import type { EvalCaseInput, EvalSet, EvalSetListItem } from '../services/core';
 import {
   createEvalSet,
   deleteEvalSet,
+  generateEvalSet,
   importEvalSet,
+  listEvalDocuments,
   listEvalSets,
   updateEvalSet,
 } from '../services/core';
@@ -75,6 +81,23 @@ function EvalSets() {
   // 一步导入
   const [ importModalOpen, setImportModalOpen ] = useState(false);
   const [ importForm ] = Form.useForm();
+
+  // 从文档生成
+  const [ docs, setDocs ] = useState<
+    Array<{ task_id: string; filename: string | null; paragraphs_count: number | null; available: boolean }>
+  >([]);
+  const [ docsLoading, setDocsLoading ] = useState(false);
+  const [ selectedDocId, setSelectedDocId ] = useState<string | undefined>();
+  const [ genName, setGenName ] = useState('');
+  const [ genCount, setGenCount ] = useState<number | null>(15);
+  const [ generating, setGenerating ] = useState(false);
+  const [ genResult, setGenResult ] = useState<{
+    set_id: number;
+    name: string;
+    inserted: number;
+    failures: Array<{ chapter?: string; reason?: string }>;
+  } | null>(null);
+  const [ genError, setGenError ] = useState<string | null>(null);
 
   const loadSets = useCallback(async() => {
     setLoading(true);
@@ -133,6 +156,56 @@ function EvalSets() {
       });
     } else {
       setForm.resetFields();
+      // 重置"从文档生成"状态并加载文档库
+      setSelectedDocId(undefined);
+      setGenName('');
+      setGenCount(15);
+      setGenResult(null);
+      setGenError(null);
+      setDocsLoading(true);
+      listEvalDocuments({ page: 1, page_size: 100 })
+        .then((res) => {
+          if (res.success && res.data) setDocs(res.data.list ?? []);
+          else message.error(res.msg || res.message || '加载文档库失败');
+        })
+        .catch(() => message.error('加载文档库失败'))
+        .finally(() => setDocsLoading(false));
+    }
+  };
+
+  /** 从已入库文档生成评估集 */
+  const handleGenerate = async() => {
+    if (!selectedDocId) {
+      message.warning('请先选择文档');
+      return;
+    }
+    setGenerating(true);
+    setGenResult(null);
+    setGenError(null);
+    try {
+      const res = await generateEvalSet({
+        doc_id: selectedDocId,
+        set_name: genName.trim() || undefined,
+        count: genCount ?? undefined,
+      });
+      if (res.success && res.data) {
+        setGenResult({
+          set_id: res.data.set.id,
+          name: res.data.set.name,
+          inserted: res.data.import_result.inserted,
+          failures: (res.data.generate_failures ?? []) as Array<{
+            chapter?: string;
+            reason?: string;
+          }>,
+        });
+        loadSets();
+      } else {
+        setGenError(res.msg || res.message || '生成失败');
+      }
+    } catch {
+      setGenError('生成失败，请稍后重试');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -373,30 +446,171 @@ function EvalSets() {
         />
       </Card>
 
-      {/* 新建 / 编辑评估集 */}
+      {/* 新建 / 编辑评估集（新建时支持 手工创建 / 从文档生成 两种方式） */}
       <Modal
         title={editingSet ? `编辑评估集：${editingSet.name}` : '新建评估集'}
         open={setModalOpen}
         onCancel={() => setSetModalOpen(false)}
-        onOk={() => {
-          setForm.validateFields().then(handleSaveSet);
-        }}
+        footer={null}
+        width={editingSet ? undefined : 720}
+        destroyOnClose
       >
-        <Form form={setForm} layout="vertical">
-          <Form.Item
-            name="name"
-            label="名称"
-            rules={[ { required: true, message: '请输入评估集名称' } ]}
-          >
-            <Input placeholder="如：员工手册-恒大" maxLength={255} />
-          </Form.Item>
-          <Form.Item name="description" label="描述">
-            <Input.TextArea rows={2} placeholder="可选" />
-          </Form.Item>
-          <Form.Item name="doc_scope" label="关联文档范围">
-            <Input placeholder="如：员工手册" maxLength={255} />
-          </Form.Item>
-        </Form>
+        {editingSet ? (
+          <Form form={setForm} layout="vertical">
+            <Form.Item
+              name="name"
+              label="名称"
+              rules={[ { required: true, message: '请输入评估集名称' } ]}
+            >
+              <Input placeholder="如：员工手册-恒大" maxLength={255} />
+            </Form.Item>
+            <Form.Item name="description" label="描述">
+              <Input.TextArea rows={2} placeholder="可选" />
+            </Form.Item>
+            <Form.Item name="doc_scope" label="关联文档范围">
+              <Input placeholder="如：员工手册" maxLength={255} />
+            </Form.Item>
+            <div style={{ textAlign: 'right' }}>
+              <Space>
+                <Button onClick={() => setSetModalOpen(false)}>取消</Button>
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    setForm.validateFields().then(handleSaveSet);
+                  }}
+                >
+                  保存
+                </Button>
+              </Space>
+            </div>
+          </Form>
+        ) : (
+          <Tabs
+            items={[
+              {
+                key: 'manual',
+                label: '手工创建',
+                children: (
+                  <Form form={setForm} layout="vertical">
+                    <Form.Item
+                      name="name"
+                      label="名称"
+                      rules={[ { required: true, message: '请输入评估集名称' } ]}
+                    >
+                      <Input placeholder="如：员工手册-恒大" maxLength={255} />
+                    </Form.Item>
+                    <Form.Item name="description" label="描述">
+                      <Input.TextArea rows={2} placeholder="可选" />
+                    </Form.Item>
+                    <Form.Item name="doc_scope" label="关联文档范围">
+                      <Input placeholder="如：员工手册" maxLength={255} />
+                    </Form.Item>
+                    <div style={{ textAlign: 'right' }}>
+                      <Space>
+                        <Button onClick={() => setSetModalOpen(false)}>取消</Button>
+                        <Button
+                          type="primary"
+                          onClick={() => {
+                            setForm.validateFields().then(handleSaveSet);
+                          }}
+                        >
+                          创建
+                        </Button>
+                      </Space>
+                    </div>
+                  </Form>
+                ),
+              },
+              {
+                key: 'fromDoc',
+                label: '从文档生成',
+                children: (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <Alert
+                      type="info"
+                      showIcon
+                      message="选择已入库文档，由 LLM 读取文档原始内容生成 QA 用例并自动创建评估集（需先由「文档入库」上传）"
+                    />
+                    <div>
+                      <div style={{ marginBottom: 4 }}>选择文档</div>
+                      <Select
+                        style={{ width: '100%' }}
+                        placeholder="请选择已入库文档"
+                        loading={docsLoading}
+                        value={selectedDocId}
+                        onChange={setSelectedDocId}
+                        options={docs.map((d) => ({
+                          value: d.task_id,
+                          label: d.available
+                            ? `${d.filename ?? d.task_id}（${d.paragraphs_count ?? '?'} 段）`
+                            : `${d.filename ?? d.task_id}（内容不可用）`,
+                          disabled: !d.available,
+                        }))}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: 12 }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ marginBottom: 4 }}>评估集名称（可选）</div>
+                        <Input
+                          placeholder="缺省自动命名：自动-文档名-时间"
+                          value={genName}
+                          onChange={(e) => setGenName(e.target.value)}
+                          maxLength={255}
+                        />
+                      </div>
+                      <div style={{ width: 140 }}>
+                        <div style={{ marginBottom: 4 }}>生成条数</div>
+                        <InputNumber
+                          min={5}
+                          max={100}
+                          value={genCount}
+                          onChange={(v) => setGenCount(v)}
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="primary"
+                      icon={<ExperimentOutlined />}
+                      loading={generating}
+                      disabled={!selectedDocId}
+                      onClick={() => void handleGenerate()}
+                    >
+                      {generating ? '正在生成用例…' : '生成评估集'}
+                    </Button>
+                    {genError && <Alert type="error" showIcon message={genError} />}
+                    {genResult && (
+                      <Alert
+                        type="success"
+                        showIcon
+                        message={`生成完成：评估集「${genResult.name}」已创建，导入用例 ${genResult.inserted} 条`}
+                        description={
+                          genResult.failures.length > 0
+                            ? `部分生成失败 ${genResult.failures.length} 处（${genResult.failures
+                                .map((f) => `${f.chapter ?? '全文'}: ${f.reason ?? ''}`)
+                                .join('；')}）`
+                            : '可直接「运行评估集」评测该文档的问答质量'
+                        }
+                        action={
+                          <Button
+                            size="small"
+                            type="primary"
+                            onClick={() => {
+                              setSetModalOpen(false);
+                              navigate(`/eval-sets/${genResult.set_id}`);
+                            }}
+                          >
+                            查看用例
+                          </Button>
+                        }
+                      />
+                    )}
+                  </div>
+                ),
+              },
+            ]}
+          />
+        )}
       </Modal>
 
       {/* 一步导入 */}

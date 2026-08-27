@@ -8,6 +8,8 @@ import type {
   ApiResponse,
   EvalCaseImportResult,
   EvalCaseInput,
+  EvalDocListData,
+  EvalGenerateResult,
   EvalSet,
   EvalSetDetail,
   EvalSetImportData,
@@ -111,5 +113,26 @@ export async function importEvalSet(params: {
   return coreRequest(CORE_API.EVAL.SET_IMPORT, {
     method: 'POST',
     body: params,
+  });
+}
+
+/** 文档库列表（已入库文档，供生成评估集选取；走 core 的 /doc-kit 代理，只读开放） */
+export async function listEvalDocuments(params?: {
+  page?: number;
+  page_size?: number;
+}): Promise<ApiResponse<EvalDocListData>> {
+  return coreRequest(CORE_API.EVAL.DOCUMENTS, { params });
+}
+
+/** 从已入库文档生成评估集（LLM 生成 QA → 建集导用例；耗时较长，超时放宽到 10 分钟） */
+export async function generateEvalSet(body: {
+  doc_id: string;
+  set_name?: string;
+  count?: number;
+}): Promise<ApiResponse<EvalGenerateResult>> {
+  return coreRequest(CORE_API.EVAL.SETS_GENERATE, {
+    method: 'POST',
+    body,
+    timeout: 10 * 60 * 1000,
   });
 }

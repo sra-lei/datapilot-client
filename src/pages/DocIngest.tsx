@@ -48,6 +48,7 @@ import {
   getDocumentChunks,
   getDocumentSummaries,
 } from "../services/doc-kit";
+import { usePermission } from "../contexts/PermissionContext";
 
 const { Text } = Typography;
 
@@ -80,6 +81,9 @@ function statusTag(status: DocKitDocumentRecord["status"]) {
 
 export default function DocIngest() {
   const { token } = theme.useToken();
+  // 权限门禁：文档入库（doc:ingest）与评估域分离，仅入库人员可见可操作
+  const { can } = usePermission();
+  const canIngest = can("ingest", "Doc");
   // 上传面板 ref：对外拿探活状态（给 Collapse Title 右侧的"重新探活"按钮用）
   const uploadPanelRef = useRef<DocKitUploadPanelRef>(null);
   // ref 的 health/healthDown 变化不会触发重渲染，用一个 tick 强制刷新 Collapse 标题的 Tag
@@ -345,6 +349,14 @@ export default function DocIngest() {
   );
 
   const tableDataSource = data.list.map((r) => ({ ...r, key: r.document_id }));
+
+  if (!canIngest) {
+    return (
+      <div style={{ padding: "48px 0" }}>
+        <Empty description="没有文档入库权限（需要 doc:ingest 权限，请联系管理员分配）" />
+      </div>
+    );
+  }
 
   return (
     <div>

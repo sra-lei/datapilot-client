@@ -72,7 +72,7 @@ function MainLayout() {
           key: "/doc-ingest",
           icon: <InboxOutlined />,
           label: "文档入库",
-          permission: null,
+          permission: { action: "ingest", subject: "Doc" },
         },
         {
           key: "/rag-dashboard",

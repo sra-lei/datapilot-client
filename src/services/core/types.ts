@@ -308,5 +308,31 @@ export interface EvalRunSetResult {
   failed_count: number;
 }
 
+// ============ 从已入库文档生成评估集 ============
+
+// 文档库列表项（doc-kit /api/v1/documents）
+export interface EvalDocItem {
+  task_id: string;
+  filename: string | null;
+  paragraphs_count: number | null;
+  available: boolean;
+  created_at?: number | null;
+}
+
+// 文档库分页列表
+export interface EvalDocListData {
+  list: EvalDocItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+// 生成评估集结果（含建集 + 导入结果 + 生成失败明细）
+export interface EvalGenerateResult {
+  set: EvalSet;
+  import_result: EvalCaseImportResult;
+  generate_failures: unknown[];
+}
+
 // 重新导出公共类型
 export type { ApiResponse } from '../types';

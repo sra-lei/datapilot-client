@@ -67,6 +67,9 @@ export const CORE_API = {
     RUNS_BATCH: '/core/eval/runs/batch',
     RUN_SET: (id: number) => `/core/eval/sets/${id}/runs`,
     RUN: (id: number) => `/core/eval/runs/${id}`,
+    // 从已入库文档生成评估集（文档列表走 core 的 /doc-kit 代理，只读开放）
+    DOCUMENTS: '/doc-kit/api/v1/documents',
+    SETS_GENERATE: '/core/eval/sets/generate',
   },
 
   // 系统相关

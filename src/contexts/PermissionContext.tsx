@@ -63,6 +63,10 @@ function createAbility(permissions: string[]): Ability {
           if (subject === 'read') can('read', 'Eval');
           if (subject === 'write') can('write', 'Eval');
           break;
+        case 'doc':
+          // doc:ingest → 文档入库（与评估域权限分离：入库 / 评估两拨人）
+          if (subject === 'ingest') can('ingest', 'Doc');
+          break;
         }
       }
     });
