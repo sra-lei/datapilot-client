@@ -72,6 +72,15 @@ export const CORE_API = {
     SETS_GENERATE: '/core/eval/sets/generate',
   },
 
+  // 任务中心（长耗时操作异步化：提交 → 轮询 /core/tasks/:id）
+  TASK: {
+    SUBMIT_EVAL_SET_GENERATE: '/core/tasks/eval-set-generate',
+    SUBMIT_EVAL_RUN: '/core/tasks/eval-run',
+    LIST: '/core/tasks',
+    DETAIL: (id: number) => `/core/tasks/${id}`,
+    CANCEL: (id: number) => `/core/tasks/${id}/cancel`,
+  },
+
   // 系统相关
   SYSTEM: {
     HEALTH: '/core/health',

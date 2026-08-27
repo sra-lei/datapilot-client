@@ -10,7 +10,6 @@ import type {
   EvalRunDetail,
   EvalRunImportResult,
   EvalRunListData,
-  EvalRunSetResult,
   EvalStatsData,
 } from "./types";
 
@@ -38,13 +37,12 @@ export async function importEvalReportsBatch(
   });
 }
 
-/** 在线运行评估集（指定 set_id；耗时较长，超时放宽到 10 分钟） */
+/** 在线运行评估集（任务化：提交即返回 task_id，进度走任务中心轮询） */
 export async function runEvalSet(
   set_id: number,
-): Promise<ApiResponse<EvalRunSetResult>> {
-  return coreRequest<EvalRunSetResult>(CORE_API.EVAL.RUN_SET(set_id), {
+): Promise<ApiResponse<{ task_id: number }>> {
+  return coreRequest<{ task_id: number }>(CORE_API.EVAL.RUN_SET(set_id), {
     method: "POST",
-    timeout: 10 * 60 * 1000,
   });
 }
 

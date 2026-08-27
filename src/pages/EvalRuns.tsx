@@ -15,18 +15,15 @@ import {
   Alert,
   Button,
   Card,
-  Col,
   Descriptions,
   Drawer,
   Empty,
   message,
   Modal,
   Popconfirm,
-  Row,
   Select,
   Space,
   Spin,
-  Statistic,
   Table,
   Tag,
   theme,
@@ -46,9 +43,9 @@ import {
   deleteEvalRun,
   getEvalRun,
   getEvalRuns,
-  runEvalSet,
 } from "../services/core";
 import { listEvalSets } from "../services/core/evalSet";
+import { pollTask, submitEvalRunTask } from "../services/core/task";
 
 const PAGE_SIZE = 10;
 
@@ -82,13 +79,12 @@ function EvalRuns() {
   const [detail, setDetail] = useState<EvalRunDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // 运行评估集
+  // 运行评估集（任务化：提交 → 关闭对话框 → 提示前往任务中心，后台轮询完成后刷新）
   const [runModalOpen, setRunModalOpen] = useState(false);
   const [evalSets, setEvalSets] = useState<EvalSetListItem[]>([]);
   const [setsLoading, setSetsLoading] = useState(false);
   const [selectedSetId, setSelectedSetId] = useState<number | undefined>();
   const [running, setRunning] = useState(false);
-  const [runResult, setRunResult] = useState<EvalRunSetResult | null>(null);
 
   const { can } = usePermission();
   const canWrite = can("write", "Eval");
@@ -117,7 +113,6 @@ function EvalRuns() {
 
   const openRunModal = async () => {
     setRunModalOpen(true);
-    setRunResult(null);
     setSelectedSetId(undefined);
     setSetsLoading(true);
     try {
@@ -136,22 +131,37 @@ function EvalRuns() {
     }
   };
 
+  /** 提交运行任务 → 关闭对话框 → 提示前往任务中心 → 后台轮询完成后刷新历史 */
   const startRun = async () => {
     if (!selectedSetId) {
       message.warning("请选择评估集");
       return;
     }
     setRunning(true);
-    setRunResult(null);
     try {
-      const res = await runEvalSet(selectedSetId);
-      if (res.success && res.data) {
-        setRunResult(res.data);
-        message.success(`评估完成，已入库：运行 #${res.data.run_id}`);
-        fetchList(1);
-      } else {
-        message.error(res.msg || "评估运行失败");
+      const res = await submitEvalRunTask(selectedSetId);
+      if (!res.success || !res.data) {
+        message.error(res.msg || "任务提交失败");
+        return;
       }
+      const taskId = res.data.task_id;
+
+      // 提交成功：关闭当前对话框，轻提示前往任务中心（视觉最轻：顶部 toast 自动消失）
+      setRunModalOpen(false);
+      message.success(`任务 #${taskId} 已提交，可在「任务中心」查看进度`, 3);
+
+      // 后台轮询：完成后静默刷新历史列表，仅轻提示结果（不阻塞当前页面）
+      void pollTask(taskId, { intervalMs: 3000 }).then((task) => {
+        if (task.status === "success" && task.result) {
+          const r = task.result as unknown as EvalRunSetResult;
+          fetchList(1);
+          message.success(`运行 #${r.run_id} 已完成入库`, 3);
+        } else if (task.status === "failed") {
+          message.error(task.error || "评估运行失败", 4);
+        } else if (task.status === "cancelled") {
+          message.warning("评估任务已取消", 3);
+        }
+      });
     } catch (error) {
       console.error("运行评估失败:", error);
       message.error("评估运行失败，请稍后重试");
@@ -371,7 +381,7 @@ function EvalRuns() {
         width={560}
       >
         <p style={{ color: token.colorTextSecondary, marginBottom: 8 }}>
-          选择评估集后开始在线评测：逐条调用 RAG 问答接口，完成后结果自动入库
+          选择评估集后开始在线评测：逐条调用 RAG 问答接口（关闭缓存），完成后结果自动入库
         </p>
         <Select<number>
           style={{ width: "100%" }}
@@ -385,44 +395,12 @@ function EvalRuns() {
           }))}
           disabled={running}
         />
-        {running && (
-          <Alert
-            style={{ marginTop: 12 }}
-            type="info"
-            showIcon
-            message="正在运行评估，请稍候（用例较多时耗时较长）..."
-          />
-        )}
-        {runResult && (
-          <Card size="small" style={{ marginTop: 12 }}>
-            <Row gutter={16} style={{ marginBottom: 8 }}>
-              <Col span={8}>
-                <Statistic title="运行 ID" value={runResult.run_id} />
-              </Col>
-              <Col span={8}>
-                <Statistic
-                  title="平均分"
-                  value={(runResult.avg_score * 100).toFixed(1)}
-                  suffix="%"
-                  valueStyle={{
-                    color: getScoreColor(runResult.avg_score, token),
-                  }}
-                />
-              </Col>
-              <Col span={8}>
-                <Statistic
-                  title="通过率 (≥80%)"
-                  value={`${runResult.passed}/${runResult.total}`}
-                />
-              </Col>
-            </Row>
-            <Alert
-              type={runResult.failed_count > 0 ? "warning" : "success"}
-              showIcon
-              message={`评估完成：平均耗时 ${runResult.avg_elapsed.toFixed(2)}s，失败用例 ${runResult.failed_count} 条，已入库运行 #${runResult.run_id}`}
-            />
-          </Card>
-        )}
+        <Alert
+          type="info"
+          showIcon
+          message="提交后自动关闭本窗口，可前往任务中心查看进度；完成后会在此提示。"
+          style={{ marginTop: 12 }}
+        />
       </Modal>
 
       {/* 运行详情抽屉 */}

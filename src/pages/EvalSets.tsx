@@ -37,12 +37,12 @@ import type { EvalCaseInput, EvalSet, EvalSetListItem } from '../services/core';
 import {
   createEvalSet,
   deleteEvalSet,
-  generateEvalSet,
   importEvalSet,
   listEvalDocuments,
   listEvalSets,
   updateEvalSet,
 } from '../services/core';
+import { pollTask, submitEvalSetGenerateTask } from '../services/core/task';
 
 const STATUS_META: Record<string, { text: string; color: string }> = {
   normal: { text: '正常', color: 'success' },
@@ -82,7 +82,7 @@ function EvalSets() {
   const [ importModalOpen, setImportModalOpen ] = useState(false);
   const [ importForm ] = Form.useForm();
 
-  // 从文档生成
+  // 从文档生成（任务化：提交 → 关闭对话框 → 提示前往任务中心，后台轮询完成后刷新）
   const [ docs, setDocs ] = useState<
     Array<{ task_id: string; filename: string | null; paragraphs_count: number | null; available: boolean }>
   >([]);
@@ -91,12 +91,6 @@ function EvalSets() {
   const [ genName, setGenName ] = useState('');
   const [ genCount, setGenCount ] = useState<number | null>(15);
   const [ generating, setGenerating ] = useState(false);
-  const [ genResult, setGenResult ] = useState<{
-    set_id: number;
-    name: string;
-    inserted: number;
-    failures: Array<{ chapter?: string; reason?: string }>;
-  } | null>(null);
   const [ genError, setGenError ] = useState<string | null>(null);
 
   const loadSets = useCallback(async() => {
@@ -160,7 +154,6 @@ function EvalSets() {
       setSelectedDocId(undefined);
       setGenName('');
       setGenCount(15);
-      setGenResult(null);
       setGenError(null);
       setDocsLoading(true);
       listEvalDocuments({ page: 1, page_size: 100 })
@@ -173,37 +166,44 @@ function EvalSets() {
     }
   };
 
-  /** 从已入库文档生成评估集 */
+  /** 从已入库文档生成评估集：提交任务 → 关闭对话框 → 提示前往任务中心 → 后台轮询完成后刷新 */
   const handleGenerate = async() => {
     if (!selectedDocId) {
       message.warning('请先选择文档');
       return;
     }
     setGenerating(true);
-    setGenResult(null);
     setGenError(null);
     try {
-      const res = await generateEvalSet({
+      const res = await submitEvalSetGenerateTask({
         doc_id: selectedDocId,
         set_name: genName.trim() || undefined,
         count: genCount ?? undefined,
       });
-      if (res.success && res.data) {
-        setGenResult({
-          set_id: res.data.set.id,
-          name: res.data.set.name,
-          inserted: res.data.import_result.inserted,
-          failures: (res.data.generate_failures ?? []) as Array<{
-            chapter?: string;
-            reason?: string;
-          }>,
-        });
-        loadSets();
-      } else {
-        setGenError(res.msg || res.message || '生成失败');
+      if (!res.success || !res.data) {
+        setGenError(res.msg || res.message || '任务提交失败');
+        return;
       }
+      const taskId = res.data.task_id;
+
+      // 提交成功：关闭当前对话框，轻提示前往任务中心（视觉最轻：顶部 toast 自动消失）
+      setSetModalOpen(false);
+      message.success(`任务 #${taskId} 已提交，可在「任务中心」查看进度`, 3);
+
+      // 后台轮询：完成后静默刷新评估集列表，仅轻提示结果（不阻塞当前页面）
+      void pollTask(taskId, { intervalMs: 3000 }).then((task) => {
+        if (task.status === 'success' && task.result) {
+          const r = task.result;
+          loadSets();
+          message.success(`评估集「${String(r.name ?? '')}」已生成`, 3);
+        } else if (task.status === 'failed') {
+          message.error(task.error || '评估集生成失败', 4);
+        } else if (task.status === 'cancelled') {
+          message.warning('生成任务已取消', 3);
+        }
+      });
     } catch {
-      setGenError('生成失败，请稍后重试');
+      setGenError('任务提交失败，请稍后重试');
     } finally {
       setGenerating(false);
     }
@@ -576,35 +576,15 @@ function EvalSets() {
                       disabled={!selectedDocId}
                       onClick={() => void handleGenerate()}
                     >
-                      {generating ? '正在生成用例…' : '生成评估集'}
+                      {generating ? '正在提交…' : '生成评估集'}
                     </Button>
+                    <Alert
+                      type="info"
+                      showIcon
+                      message="提交后自动关闭本窗口，可前往任务中心查看生成进度；完成后会在此提示。"
+                      style={{ marginTop: 4 }}
+                    />
                     {genError && <Alert type="error" showIcon message={genError} />}
-                    {genResult && (
-                      <Alert
-                        type="success"
-                        showIcon
-                        message={`生成完成：评估集「${genResult.name}」已创建，导入用例 ${genResult.inserted} 条`}
-                        description={
-                          genResult.failures.length > 0
-                            ? `部分生成失败 ${genResult.failures.length} 处（${genResult.failures
-                                .map((f) => `${f.chapter ?? '全文'}: ${f.reason ?? ''}`)
-                                .join('；')}）`
-                            : '可直接「运行评估集」评测该文档的问答质量'
-                        }
-                        action={
-                          <Button
-                            size="small"
-                            type="primary"
-                            onClick={() => {
-                              setSetModalOpen(false);
-                              navigate(`/eval-sets/${genResult.set_id}`);
-                            }}
-                          >
-                            查看用例
-                          </Button>
-                        }
-                      />
-                    )}
                   </div>
                 ),
               },

@@ -17,6 +17,7 @@ import Profile from "../pages/Profile";
 import RagDashboard from "../pages/RagDashboard";
 import Register from "../pages/Register";
 import SystemSettings from "../pages/Settings";
+import TaskCenter from "../pages/TaskCenter";
 import UserManagement from "../pages/Users";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -60,6 +61,10 @@ const protectedRoutes: RouteObject[] = [
       {
         path: "/eval-runs",
         element: <EvalRuns />,
+      },
+      {
+        path: "/tasks",
+        element: <TaskCenter />,
       },
       {
         path: "/eval-sets",

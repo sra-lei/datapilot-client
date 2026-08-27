@@ -9,3 +9,4 @@ export * from './permission';
 export * from './database';
 export * from './evalSet';
 export * from './eval';
+export * from './task';

@@ -9,7 +9,6 @@ import type {
   EvalCaseImportResult,
   EvalCaseInput,
   EvalDocListData,
-  EvalGenerateResult,
   EvalSet,
   EvalSetDetail,
   EvalSetImportData,
@@ -124,15 +123,14 @@ export async function listEvalDocuments(params?: {
   return coreRequest(CORE_API.EVAL.DOCUMENTS, { params });
 }
 
-/** 从已入库文档生成评估集（LLM 生成 QA → 建集导用例；耗时较长，超时放宽到 10 分钟） */
+/** 从已入库文档生成评估集（任务化：提交即返回 task_id，进度走任务中心轮询） */
 export async function generateEvalSet(body: {
   doc_id: string;
   set_name?: string;
   count?: number;
-}): Promise<ApiResponse<EvalGenerateResult>> {
+}): Promise<ApiResponse<{ task_id: number }>> {
   return coreRequest(CORE_API.EVAL.SETS_GENERATE, {
     method: 'POST',
     body,
-    timeout: 10 * 60 * 1000,
   });
 }

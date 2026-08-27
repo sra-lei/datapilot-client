@@ -334,5 +334,42 @@ export interface EvalGenerateResult {
   generate_failures: unknown[];
 }
 
+// ============ 任务中心（Core /core/tasks 提供） ============
+
+// 任务类型：eval_run=运行评估集 / eval_set_generate=从文档生成评估集
+export type TaskType = 'eval_run' | 'eval_set_generate';
+
+// 任务状态：queued=排队中 / running=执行中 / success=成功 / failed=失败 / cancelled=已取消
+export type TaskStatus = 'queued' | 'running' | 'success' | 'failed' | 'cancelled';
+
+// 任务（执行过程记录；成果落在 eval_sets / eval_runs，result 存关联 id 与摘要）
+export interface TaskItem {
+  id: number;
+  task_type: TaskType;
+  status: TaskStatus;
+  payload: Record<string, unknown> | null;
+  progress: number;
+  progress_detail: Record<string, unknown> | null;
+  result: Record<string, unknown> | null;
+  error: string | null;
+  created_by: number | null;
+  created_at?: string;
+  updated_at?: string;
+  finished_at?: string | null;
+}
+
+// 任务列表分页响应
+export interface TaskListData {
+  list: TaskItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+// 提交任务响应（统一返回 task_id）
+export interface TaskSubmitResult {
+  task_id: number;
+}
+
 // 重新导出公共类型
 export type { ApiResponse } from '../types';
