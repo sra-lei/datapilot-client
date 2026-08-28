@@ -10,6 +10,7 @@
  *    只需替换内部实现，页面签名/类型保持不变，无破坏性改动。
  */
 import { docKitRequest } from "../../utils/request";
+import type { ApiResponse } from "../types";
 import { DOC_KIT_API } from "./constants";
 import type {
   DocKitChunkItem,
@@ -21,6 +22,7 @@ import type {
   IngestAuditData,
   IngestStatusData,
   IngestSubmitData,
+  IngestTaskListData,
 } from "./types";
 
 export * from "./constants";
@@ -123,6 +125,21 @@ export async function auditIngest(
     method: "GET",
     params: { task_id },
     timeout: 15000,
+  });
+}
+
+/**
+ * 入库任务列表（供任务中心合并展示；含排队/执行/成功/失败，不含评估生成任务）
+ */
+export async function listIngestTasks(params: {
+  page?: number;
+  page_size?: number;
+  status?: string;
+} = {}): Promise<ApiResponse<IngestTaskListData>> {
+  return docKitRequest<IngestTaskListData>(DOC_KIT_API.INGEST_TASKS, {
+    method: "GET",
+    params,
+    timeout: 10000,
   });
 }
 

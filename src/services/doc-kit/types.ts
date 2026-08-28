@@ -89,6 +89,31 @@ export interface IngestAuditData {
   [key: string]: unknown;
 }
 
+/** /doc-kit/api/v1/ingest/tasks -> data（入库任务列表项，任务中心合并展示用） */
+export interface IngestTaskItem {
+  task_id: string;
+  filename?: string | null;
+  /** queued / running / success / error（后端异常统一 error，无 failed） */
+  status: IngestStatusData["status"];
+  error?: string | null;
+  chunks_count?: number | null;
+  summary_count?: number | null;
+  collection?: string | null;
+  summary_collection?: string | null;
+  /** Unix 秒时间戳（float），与 DocKitDocumentRecord.created_at 一致 */
+  created_at?: number | null;
+  finished_at?: number | null;
+  [key: string]: unknown;
+}
+
+/** 入库任务分页响应（data 内层） */
+export interface IngestTaskListData {
+  list: IngestTaskItem[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export const INGEST_AUDIT_VERDICT_LABELS: Record<IngestAuditVerdict, string> = {
   completed_ok: "核对一致：已完成入库",
   partial: "部分入库（实际条数少于报告，请重试）",

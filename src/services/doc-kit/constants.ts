@@ -16,6 +16,9 @@ export const DOC_KIT_API = {
   // 入库核对：任务记录 × Milvus 实际数据交叉验证（轮询停止/重启后仍可查）
   INGEST_AUDIT: "/doc-kit/api/v1/ingest/audit",
 
+  // 入库任务列表（任务中心合并展示用，含排队/执行/成功/失败）
+  INGEST_TASKS: "/doc-kit/api/v1/ingest/tasks",
+
   // 列表：按文档 ID 查询原文 chunks（后端占位，待 doc-kit 实现后再对调真实实现）
   DOCUMENT_CHUNKS: "/doc-kit/api/v1/documents/:document_id/chunks",
 
